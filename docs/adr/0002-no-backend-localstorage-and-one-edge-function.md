@@ -1,4 +1,4 @@
-# No backend: localStorage, plus exactly one edge function
+# No backend: localStorage, plus exactly one serverless function
 
 Onward is a static Vite SPA. The Itinerary lives in `localStorage`, and JSON export/import is the only
 backup mechanism. There is **one** serverless function in the whole system, and its only job is following
@@ -20,3 +20,19 @@ only part of this product that has to be good.
 - If a future session feels the pull to add a database, that is a signal the destination has been
   redrawn — it belongs in a fresh effort, not in this one. See the
   [wayfinder map](https://github.com/adrianpetersson/onward/issues/1)'s out-of-scope list.
+
+## Amendment, 13 Aug 2026 — the function runs on Node, not Edge
+
+The original wording called this an "edge function". Research
+([#5](https://github.com/adrianpetersson/onward/issues/5),
+[findings](https://github.com/adrianpetersson/onward/blob/research/google-maps-link-coordinates/docs/research/google-maps-link-coordinates.md))
+established that Vercel's own documentation now recommends migrating _off_ the Edge runtime, and that
+Next.js 16.3 dropped `runtime = 'edge'` altogether. **Ship it on the Node.js runtime.** Still exactly one
+function; the constraint this ADR exists to enforce is unchanged.
+
+The same research also confirmed the necessity this ADR asserted: the `maps.app.goo.gl` 302 carries no
+`Access-Control-*` headers at all, and the preflight adds none, so a browser genuinely cannot read the
+`Location` header. The function is not a convenience.
+
+**One hard requirement on it:** the host allowlist must be re-checked on _every_ redirect hop. Without
+that, this function is an open SSRF proxy, and it is the only server-side surface in the product.
