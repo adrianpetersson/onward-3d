@@ -3,7 +3,8 @@
 import type { Dispatch } from 'react'
 
 import { markerAt, nightsAt, perNight } from '../itinerary/derive'
-import type { Coord, Stay, StayStatus, Stop } from '../itinerary/model'
+import type { Stay, StayStatus, Stop } from '../itinerary/model'
+import { CoordField } from './CoordField'
 import {
   DateInput,
   Derived,
@@ -33,17 +34,6 @@ const STATUSES: { value: StayStatus; label: string; hint: string }[] = [
     hint: 'A target. Nothing committed.',
   },
 ]
-
-/** Reads a "lat, lng" paste, or the `!3d…!4d…` pair out of a Google Maps address-bar URL. */
-export function parseCoord(input: string): Coord | null {
-  const fromUrl = input.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/)
-  if (fromUrl) return { lat: Number(fromUrl[1]), lng: Number(fromUrl[2]) }
-
-  const bare = input.trim().match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/)
-  if (bare) return { lat: Number(bare[1]), lng: Number(bare[2]) }
-
-  return null
-}
 
 function Marker({ stop }: { stop: Stop }) {
   const marker = markerAt(stop)
@@ -164,16 +154,19 @@ export function StopCard({
             </div>
           </div>
 
-          <Field label="Where it is">
-            <Text
-              value={placed ? `${stop.coord.lat}, ${stop.coord.lng}` : null}
-              placeholder="paste a coordinate or a Google Maps link"
-              onChange={(v) => {
-                const coord = v ? parseCoord(v) : null
-                if (coord) edit({ coord })
-              }}
-            />
-          </Field>
+          <CoordField
+            label="Where it is"
+            what="this stop"
+            coord={placed ? stop.coord : null}
+            onPlace={(coord, name) =>
+              edit({
+                // A Stop's coordinate is not nullable — a Stop that cannot be drawn cannot exist —
+                // so unplaced is the origin of the world rather than `null`.
+                coord: coord ?? { lng: 0, lat: 0 },
+                ...(name && !stop.name ? { name } : {}),
+              })
+            }
+          />
           {!placed && (
             <p className="-mt-1 mb-2 text-[10.5px] text-black/40">
               Nothing is drawn until this Stop has a coordinate.
@@ -285,16 +278,16 @@ function StayFields({
         </div>
       </div>
 
-      <Field label="Where the bed actually is">
-        <Text
-          value={stay.coord ? `${stay.coord.lat}, ${stay.coord.lng}` : null}
-          placeholder="paste the Google Maps link"
-          onChange={(v) => {
-            const coord = v ? parseCoord(v) : null
-            if (coord) edit({ coord })
-          }}
-        />
-      </Field>
+      <CoordField
+        label="Where the bed actually is"
+        what="the bed"
+        coord={stay.coord}
+        onPlace={(coord, name) =>
+          // The name Google carries is offered only into an empty field: a Stay the traveller has
+          // already named is named, and "Ao-nieng" is a transliteration of what they booked.
+          edit({ coord, ...(name && !stay.name ? { name } : {}) })
+        }
+      />
       {stay.booking && !stay.coord && (
         <p className="-mt-1 mb-2 text-[10.5px] text-amber-700">
           Booked, but standing on the Stop’s centre — it will jump until you

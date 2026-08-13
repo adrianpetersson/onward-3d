@@ -25,6 +25,12 @@ the Leg into each one annotated with its Mode, times, carrier and fare, and Stay
 references and cancellation deadlines. The shape it captures is settled and tested: see
 [`src/itinerary/model.ts`](./src/itinerary/model.ts) and [#10](../../issues/10).
 
+**And placing things.** Paste a Google Maps URL into any coordinate box and it reads the place's own
+position out of it — offline, with no network call and no key. It reads the pin, never the camera, which is
+a distinction worth knowing about before you trust any implementation of this
+([#13](../../issues/13)). Bare `lat, lng` works too, a paste it cannot read says so and says what to do
+instead, and clicking the map is always available underneath — including with no connection at all.
+
 **What also works: one real building, on a real beach.** The scaffold's orange triangle is gone. A
 CC0 low-poly guesthouse now stands at Ao Niang Resort on Koh Kradan at true metre scale — lit, casting
 a shadow, and cut off correctly by the hillside if you sink it into one. It lands within 0.001 px of
@@ -40,7 +46,7 @@ z16 and 1.5 px at z14**, so a Stay Marker is invisible at any zoom that shows mo
 form of zoom compensation is not optional — see [#11](../../issues/11).
 
 Two other gaps worth knowing before you try it: there is **no search yet** ([#18](../../issues/18)), so a
-Stop takes a pasted coordinate or a Google Maps link rather than a name; and **nothing survives a reload**
+Stop is placed by pasting or by clicking the map rather than by name; and **nothing survives a reload**
 ([#12](../../issues/12)).
 
 ## Running it

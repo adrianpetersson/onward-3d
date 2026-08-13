@@ -56,7 +56,17 @@ const tracerOrigins = (count: number): LngLatTuple[] => {
  * which is why this is a hook with an empty dependency list rather than a component tree — the map
  * is created once and mutated in place.
  */
-export function useDiorama(container: RefObject<HTMLDivElement | null>) {
+export function useDiorama(
+  container: RefObject<HTMLDivElement | null>,
+  /**
+   * Handed the map once it exists, so the sidebar can arm it for a click (`placing.tsx`). Called
+   * with `null` on teardown — a stale instance is worse than none.
+   *
+   * Must be referentially stable: it is an effect dependency, so a fresh closure per render would
+   * tear the whole map down and build it again.
+   */
+  onReady?: (map: MapLibreMap | null) => void,
+) {
   useEffect(() => {
     const element = container.current
     if (!element) return
@@ -85,6 +95,16 @@ export function useDiorama(container: RefObject<HTMLDivElement | null>) {
       ;(window as unknown as { __diorama: MapLibreMap }).__diorama = map
     }
 
+    /*
+     * Handed over on construction rather than on `load`, deliberately. Click-to-place is the floor
+     * under every other way of getting a coordinate (#13) and it must never be gated behind the
+     * network: `load` waits on tiles, so arming on it means a traveller whose tiles never arrive
+     * cannot place a Stay at all. Unprojecting a click works from the first frame — only *terrain*
+     * accuracy arrives with the DEM, and a sea-level coordinate for the first second is a far smaller
+     * cost than a floor that is missing.
+     */
+    onReady?.(map)
+
     map.on('load', () => {
       map.addSource(TERRAIN_SOURCE_ID, TERRAIN_SOURCE)
       map.setTerrain(TERRAIN)
@@ -110,7 +130,8 @@ export function useDiorama(container: RefObject<HTMLDivElement | null>) {
 
     return () => {
       live = false
+      onReady?.(null)
       map.remove()
     }
-  }, [container])
+  }, [container, onReady])
 }

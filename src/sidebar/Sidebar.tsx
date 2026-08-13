@@ -20,9 +20,10 @@ import {
   tripStart,
 } from '../itinerary/derive'
 import type { Trip } from '../itinerary/model'
+import { CoordField } from './CoordField'
 import { Field, Text, shortDate } from './fields'
 import { LegCard } from './LegCard'
-import { parseCoord, StopCard } from './StopCard'
+import { StopCard } from './StopCard'
 import { RETURN_LEG, useItinerary } from './use-itinerary'
 
 export function Sidebar({
@@ -231,9 +232,9 @@ function OriginRow({
       >
         <span className="w-3 text-center text-black/30">⌂</span>
         <span className="flex-1 text-[12px] text-black/55">
-          {trip.origin ? (
-            trip.origin.name
-          ) : (
+          {/* Placing home by pasting a link creates an Origin before it has a name, so the prompt
+              stands until the name does. */}
+          {trip.origin?.name || (
             <span className="text-black/30">Where do you set off from?</span>
           )}
         </span>
@@ -261,25 +262,23 @@ function OriginRow({
               }
             />
           </Field>
-          <Field label="Where it is">
-            <Text
-              value={
-                trip.origin && trip.origin.lat !== 0
-                  ? `${trip.origin.lat}, ${trip.origin.lng}`
-                  : null
-              }
-              placeholder="paste a coordinate or a Google Maps link"
-              onChange={(value) => {
-                const coord = value ? parseCoord(value) : null
-                if (coord && trip.origin) {
-                  dispatch({
-                    type: 'edit-trip',
-                    patch: { origin: { ...trip.origin, ...coord } },
-                  })
-                }
-              }}
-            />
-          </Field>
+          <CoordField
+            label="Where it is"
+            what="home"
+            coord={trip.origin && trip.origin.lat !== 0 ? trip.origin : null}
+            onPlace={(coord, name) =>
+              dispatch({
+                type: 'edit-trip',
+                patch: {
+                  origin: {
+                    name: trip.origin?.name || name || '',
+                    lng: coord?.lng ?? 0,
+                    lat: coord?.lat ?? 0,
+                  },
+                },
+              })
+            }
+          />
           <p className="text-[10.5px] text-black/40">
             The long-haul out and the long-haul home are drawn from here. It is
             never a Stop — you do not sleep at home on this trip.
