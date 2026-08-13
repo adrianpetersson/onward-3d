@@ -22,7 +22,11 @@ import { buildProofTriangle } from './proof-triangle'
  * which is why this is a hook with an empty dependency list rather than a component tree — the map
  * is created once and mutated in place.
  */
-export function useDiorama(container: RefObject<HTMLDivElement | null>) {
+export function useDiorama(
+  container: RefObject<HTMLDivElement | null>,
+  /** Filled with the live map so a caller can drive the camera and force a resize. */
+  mapRef?: RefObject<MapLibreMap | null>,
+) {
   useEffect(() => {
     const element = container.current
     if (!element) return
@@ -42,6 +46,8 @@ export function useDiorama(container: RefObject<HTMLDivElement | null>) {
 
     map.addControl(new NavigationControl({ visualizePitch: true }), 'top-right')
 
+    if (mapRef) mapRef.current = map
+
     map.on('load', () => {
       map.addSource(TERRAIN_SOURCE_ID, TERRAIN_SOURCE)
       map.setTerrain(TERRAIN)
@@ -55,6 +61,9 @@ export function useDiorama(container: RefObject<HTMLDivElement | null>) {
       )
     })
 
-    return () => map.remove()
-  }, [container])
+    return () => {
+      if (mapRef) mapRef.current = null
+      map.remove()
+    }
+  }, [container, mapRef])
 }
