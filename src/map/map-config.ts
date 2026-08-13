@@ -1,4 +1,5 @@
 import type {
+  HillshadeLayerSpecification,
   MapOptions,
   RasterDEMSourceSpecification,
   StyleSpecification,
@@ -49,10 +50,58 @@ export const TERRAIN_SOURCE: RasterDEMSourceSpecification = {
   attribution: ELEVATION_ATTRIBUTION,
 }
 
+/**
+ * 2 rather than the 1.5 the scaffold shipped. #11 compared the two side by side against a shaded
+ * ground: at 1.5 Koh Kradan's 83 m of real relief still flattens out under a hillshade, and at 2 the
+ * ridge reads without the coastline starting to look like a cliff.
+ */
 export const TERRAIN: TerrainSpecification = {
   source: TERRAIN_SOURCE_ID,
-  exaggeration: 1.5,
+  exaggeration: 2,
 }
+
+/**
+ * The layer that makes the ground read as ground.
+ *
+ * #6 and #7 both hit the same wall from different sides: the stripped Positron fork carries no
+ * `hillshade`, so an island with 83 m of correctly-decoded elevation still drew as a flat silhouette
+ * ([`docs/tracer/island-reads-flat.png`](../../docs/tracer/island-reads-flat.png)). #11 settled that
+ * by shading it — the DEM is downloaded, decoded and paid for either way, and one layer over it is
+ * the whole fix.
+ *
+ * It is **not** in `style/onward-positron.json` with the rest of the visual language, and cannot be:
+ * it reads `TERRAIN_SOURCE`, which is added at runtime rather than declared in the style. A style
+ * referencing a source that is not there yet throws on construction.
+ *
+ * **`maxzoom` is load-bearing and the value is measured.** The Terrarium DEM's deepest real tile is
+ * z15, and MapLibre overzooms a `hillshade` past that into large soft blobs — at z18.9 the sea off
+ * Ao Niang fills with them and the Diorama reads broken. Capping the *layer* is what fixes it;
+ * ramping `hillshade-exaggeration` down with a zoom expression does **not** — MapLibre accepts the
+ * expression and the artefacts stay exactly as they were. 16 rather than 15 because one level of
+ * overzoom is still clean, and past it a Stay Marker's own cast shadow is carrying the relief anyway.
+ */
+export const HILLSHADE: HillshadeLayerSpecification = {
+  id: 'terrain-hillshade',
+  type: 'hillshade',
+  source: TERRAIN_SOURCE_ID,
+  maxzoom: 16,
+  paint: {
+    'hillshade-shadow-color': '#8d7f61',
+    'hillshade-highlight-color': '#fff6e4',
+    'hillshade-accent-color': '#a08d68',
+    'hillshade-exaggeration': 0.45,
+  },
+}
+
+/**
+ * Where the hillshade goes in the layer order — directly above every land fill, and below the
+ * buildings so an extrusion is never shaded twice.
+ *
+ * It does also cover `water`, which sounds wrong and is not: Terrarium encodes the open sea as a
+ * flat ~0 m, so the shading over it is uniform and invisible. Only the overzoom above z15 ever made
+ * the sea look wrong, and `maxzoom` closed that.
+ */
+export const HILLSHADE_BEFORE = 'waterway'
 
 /**
  * Koh Mook, Trang — a Stop on the trip this MVP has to hold, and the place #3 wants a screenshot of

@@ -6,6 +6,8 @@ import './worker'
 import {
   AO_NIANG,
   DIORAMA_STYLE,
+  HILLSHADE,
+  HILLSHADE_BEFORE,
   INITIAL_VIEW,
   SEARCH_ATTRIBUTION,
   TERRAIN,
@@ -108,6 +110,10 @@ export function useDiorama(
     map.on('load', () => {
       map.addSource(TERRAIN_SOURCE_ID, TERRAIN_SOURCE)
       map.setTerrain(TERRAIN)
+
+      // Reads the source added on the line above, which is the only reason it is not in the style
+      // JSON with the rest of the Diorama's look. See `HILLSHADE`.
+      map.addLayer(HILLSHADE, HILLSHADE_BEFORE)
 
       // Added empty and filled in when the GLB lands. The alternative — waiting for the model
       // before adding the layer — leaves a window where the map is interactive and the layer is

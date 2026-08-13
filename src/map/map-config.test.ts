@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DIORAMA_STYLE,
   ELEVATION_ATTRIBUTION,
+  HILLSHADE,
   SEARCH_ATTRIBUTION,
   TERRAIN,
   TERRAIN_SOURCE,
@@ -87,6 +88,21 @@ describe('the Diorama style', () => {
     )
 
     expect(places.length).toBeGreaterThan(0)
+  })
+})
+
+describe('the hillshade', () => {
+  it('shades the same DEM the terrain is displacing', () => {
+    expect(HILLSHADE.source).toBe(TERRAIN_SOURCE_ID)
+  })
+
+  it('stops before the DEM runs out and MapLibre starts inventing hills', () => {
+    // Past the tileset's own maxzoom a hillshade overzooms into large soft blobs — at z18.9 they
+    // fill the sea off Ao Niang. One level of overzoom is still clean; two is not. Ramping
+    // `hillshade-exaggeration` down with a zoom expression does *not* fix it, so this cap is the
+    // only thing standing between the Diorama and that artefact.
+    const demMax = TERRAIN_SOURCE.maxzoom ?? Infinity
+    expect(HILLSHADE.maxzoom).toBeLessThanOrEqual(demMax + 1)
   })
 })
 

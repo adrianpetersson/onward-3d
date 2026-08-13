@@ -14,3 +14,13 @@ body {
   margin: 0;
   overflow: hidden;
 }
+
+/*
+ * The Itinerary panel floats clear of the viewport edges (#11), so MapLibre's bottom-left credit no
+ * longer hides behind a full-height sidebar — it lands underneath the floating card instead. Push it
+ * clear: 18px inset + 400px panel + 18px gap. Credit that has to be dug out from under a panel is
+ * not credit, and #3's terms are the reason this stack has no key to pay for.
+ */
+.maplibregl-ctrl-bottom-left {
+  margin-left: 436px;
+}

@@ -53,16 +53,27 @@ export function Sidebar({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="absolute top-4 left-4 z-10 rounded bg-white/95 px-3 py-2 text-[13px] font-medium shadow-lg"
+        className="absolute top-[18px] left-[18px] z-10 rounded-[10px] bg-[#fcfaf5]/93 px-3 py-2 text-[13px] font-medium shadow-[0_8px_24px_rgba(40,36,28,0.28)] backdrop-blur-[10px]"
       >
         ☰ Itinerary
       </button>
     )
   }
 
+  /*
+   * It floats: inset from all three edges, rounded, and casting its own shadow onto the Diorama
+   * rather than butting against it. #11 compared this against a full-height flush panel and against
+   * a solid opaque one, and the floating card is the only one that reads as an object lying *on* the
+   * world instead of a wall standing beside it — which is the right relationship, because the map is
+   * the interface and this is administration resting on top of it.
+   *
+   * The translucency is doing real work and is not decoration: at 93% over a blur you can still see
+   * the terrain moving underneath while you drag a Stop, so the panel never fully hides the thing it
+   * is editing.
+   */
   return (
-    <aside className="absolute inset-y-0 left-0 z-10 flex w-[420px] flex-col bg-[#fbfaf7]/97 shadow-[4px_0_24px_rgba(0,0,0,0.18)] backdrop-blur-sm">
-      <header className="flex items-start justify-between border-b border-black/10 px-5 py-4">
+    <aside className="absolute inset-y-[18px] left-[18px] z-10 flex w-[400px] flex-col overflow-hidden rounded-2xl bg-[#fcfaf5]/93 shadow-[0_18px_48px_rgba(40,36,28,0.32),0_2px_6px_rgba(40,36,28,0.18)] backdrop-blur-[10px]">
+      <header className="flex items-start justify-between border-b border-[#2b2b28]/10 bg-white/50 px-5 py-4">
         <div className="min-w-0 flex-1">
           <input
             value={draft.name}
@@ -187,7 +198,7 @@ export function Sidebar({
         )}
       </div>
 
-      <footer className="flex items-center justify-between border-t border-black/10 bg-white/60 px-5 py-3">
+      <footer className="flex items-center justify-between border-t border-[#2b2b28]/10 bg-white/50 px-5 py-3">
         <span className="text-[11px] text-black/50">
           {unsaved === 0
             ? 'No unsaved changes'
