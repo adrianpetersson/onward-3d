@@ -28,9 +28,13 @@ import { RETURN_LEG, useItinerary } from './use-itinerary'
 export function Sidebar({
   trip,
   onSave,
+  storage,
 }: {
   trip: Trip
-  onSave: (trip: Trip) => void
+  /** Persisting is async now (#12), and deliberately not waited on — see `use-store.ts`. */
+  onSave: (trip: Trip) => void | Promise<void>
+  /** What the footer says about where the trip lives. Composed by `App`, placed here. */
+  storage?: React.ReactNode
 }) {
   const { draft, unsaved, dispatch, save, discard } = useItinerary(trip)
   const [open, setOpen] = useState(true)
@@ -44,8 +48,10 @@ export function Sidebar({
     setExpanded((current) => (current === key ? null : key))
 
   const commit = () => {
+    // Both synchronous, and both before anything is awaited: the draft is committed and the map
+    // redraws now, while the store writes the cache and then goes after the file (#12, Q9).
     save()
-    onSave(draft)
+    void onSave(draft)
   }
 
   if (!open) {
@@ -186,13 +192,16 @@ export function Sidebar({
         )}
       </div>
 
-      <footer className="flex items-center justify-between border-t border-black/10 bg-white/60 px-5 py-3">
-        <span className="text-[11px] text-black/50">
-          {unsaved === 0
-            ? 'No unsaved changes'
-            : `${unsaved} unsaved change${unsaved === 1 ? '' : 's'}`}
-        </span>
-        <div className="flex gap-2">
+      <footer className="flex items-start justify-between gap-3 border-t border-black/10 bg-white/60 px-5 py-3">
+        <div className="min-w-0 flex-1">
+          <span className="text-[11px] text-black/50">
+            {unsaved === 0
+              ? 'No unsaved changes'
+              : `${unsaved} unsaved change${unsaved === 1 ? '' : 's'}`}
+          </span>
+          {storage}
+        </div>
+        <div className="flex shrink-0 gap-2">
           <button
             onClick={discard}
             disabled={unsaved === 0}

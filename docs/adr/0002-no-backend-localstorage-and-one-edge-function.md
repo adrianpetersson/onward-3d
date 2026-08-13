@@ -13,9 +13,11 @@ only part of this product that has to be good.
 
 ## Consequences
 
-- **A cleared browser loses the trip.** Accepted. Export is manual and the user is the backup. The
+- ~~**A cleared browser loses the trip.** Accepted. Export is manual and the user is the backup. The
   persistence ticket ([#12](https://github.com/adrianpetersson/onward/issues/12)) decides whether a
-  schema version and migration path are worth the cost given that.
+  schema version and migration path are worth the cost given that.~~ **Superseded on 13 Aug 2026 — see
+  the second amendment below and [ADR 0004](./0004-the-file-is-the-truth-localstorage-is-a-cache.md).** A
+  cleared browser now loses nothing.
 - **The single concession to the eventual SaaS is the data shape**, not the architecture: the model is
   `trips → stops → legs → bookings` from day one, so multi-trip is later a UI change rather than a
   migration. Nothing else in v1 pays anything toward multi-user.
@@ -48,3 +50,21 @@ than a workaround.
 **If short-link pastes turn out to be a real annoyance in daily use, restoring the function is a fresh
 effort, not a resumption** — and it would arrive with the Node-runtime and per-hop-allowlist requirements
 #5 documented. Hosting stays purely static in the meantime.
+
+## Second amendment, 13 Aug 2026 — `localStorage` is demoted to a cache
+
+This ADR named `localStorage` the store and manual JSON export its only backup.
+[#12](https://github.com/adrianpetersson/onward/issues/12) settled persistence and inverted that:
+**the source of truth is a JSON file on the traveller's own disk, and `localStorage` is a cache of it.**
+Export as a feature is out of scope; the file replaces it. See
+[ADR 0004](./0004-the-file-is-the-truth-localstorage-is-a-cache.md) for the reasoning and the numbers.
+
+Nothing else in this ADR moves. There is still **no server-side code, no database, no auth, no accounts
+and nothing to configure** — the File System Access API is a browser API, so the durable copy costs no
+credential and no request. The shape is still `trips → stops → legs → bookings`.
+
+What changed is that the accepted consequence above stopped being acceptable once export was cut, leaving
+one copy of real booking references in a browser profile. Worth recording for anyone who has the same
+instinct we did: **swapping in a browser database does not fix this.** `localStorage`, IndexedDB and OPFS
+share one evictable origin bucket, so SQLite over OPFS would have cost ~466 KB gzip, a worker and an RPC
+layer, and bought no durability at all. Durability means leaving the device.

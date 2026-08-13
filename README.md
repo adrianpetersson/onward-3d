@@ -30,9 +30,16 @@ still the scaffold's pitched view over Koh Mook with one orange triangle standin
 proof that a three.js model lands on a real coordinate, and nothing more. Paths, Pins and Stay Markers
 are [#8](../../issues/8), [#9](../../issues/9) and [#7](../../issues/7).
 
-Two other gaps worth knowing before you try it: there is **no search yet** ([#18](../../issues/18)), so a
-Stop takes a pasted coordinate or a Google Maps link rather than a name; and **nothing survives a reload**
-([#12](../../issues/12)).
+**And the trip now survives.** The Itinerary is saved to a **JSON file on your own disk** that you pick
+once — put it in Dropbox or iCloud and your existing backups cover the trip. That file is the source of
+truth and `localStorage` is only a cache of it, because no browser storage is durable: clearing site data
+takes all of it, and Safari expires it after seven days without a visit. There is still no server, no key
+and nothing to configure — see [#12](../../issues/12) and
+[ADR 0004](./docs/adr/0004-the-file-is-the-truth-localstorage-is-a-cache.md). Chrome or Edge on the
+desktop, since Firefox and Safari have no file picker; they run on the cache alone and say so.
+
+One gap left worth knowing before you try it: there is **no search yet** ([#18](../../issues/18)), so a
+Stop takes a pasted coordinate or a Google Maps link rather than a name.
 
 ## Running it
 
@@ -70,3 +77,6 @@ something has gone wrong — see [#3](../../issues/3) and [ADR 0002](./docs/adr/
 Deliberately, and recorded on the map: animated Vehicles travelling their Paths, a date-scrubbing
 timeline, notes on Stops, points of interest, a multi-trip UI, accounts, a server, a database, and any
 form of real routed pathfinding. Bird's paths only.
+
+Also out: **manual JSON export and import**. The file on disk replaces both — it is written on every save
+and re-opened when needed, so there is no button to press and no backup to remember to take.
