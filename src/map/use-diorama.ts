@@ -14,6 +14,13 @@ import {
 } from './map-config'
 import { createModelLayer, type Anchor } from './model-layer'
 import type { LngLatTuple } from './model-matrix'
+import {
+  addDomLabels,
+  addSymbolLabels,
+  buildSpriteLabel,
+  type LabelPoint,
+} from './prototype-11/labels'
+import { applyRegisterOnLoad, currentRegister } from './prototype-11/registers'
 import { buildStayMarker } from './stay-marker'
 
 /**
@@ -30,6 +37,23 @@ const markerCount = (): number => {
   )
   return Number.isFinite(asked) && asked > 0 ? Math.min(asked, 200) : 1
 }
+
+/**
+ * Names for the tracer ring, so #11's three label mechanisms have something to say. Real Stops off
+ * the trip this MVP has to hold — a made-up string is the wrong length and flatters the layout.
+ */
+const TRACER_NAMES = [
+  'Ao Niang Resort',
+  'Koh Kradan',
+  'Koh Mook',
+  'Sivalai Beach',
+  'Charlie Beach',
+  'Trang',
+  'Koh Lanta',
+  'Railay',
+  'Ao Nang',
+  'Krabi Town',
+]
 
 /** A ring of tracer coordinates around Ao Niang, ~200 m out, so every marker is on screen at once. */
 const tracerOrigins = (count: number): LngLatTuple[] => {
@@ -63,9 +87,14 @@ export function useDiorama(container: RefObject<HTMLDivElement | null>) {
 
     let live = true
 
+    // PROTOTYPE — #11. Without `?variant=` this is `TODAY`, whose style is the identity and whose
+    // light is #7's, so the unstyled map is still exactly the unstyled map.
+    const register = currentRegister()
+    document.documentElement.classList.add(register.chrome)
+
     const map = new MapLibreMap({
       container: element,
-      style: DIORAMA_STYLE,
+      style: register.style(DIORAMA_STYLE),
       ...INITIAL_VIEW,
       // three.js shares this context, and the model layer wants its edges smoothed.
       canvasContextAttributes: { antialias: true },
@@ -87,22 +116,37 @@ export function useDiorama(container: RefObject<HTMLDivElement | null>) {
 
     map.on('load', () => {
       map.addSource(TERRAIN_SOURCE_ID, TERRAIN_SOURCE)
-      map.setTerrain(TERRAIN)
+      map.setTerrain({ ...TERRAIN, exaggeration: register.exaggeration })
+
+      // PROTOTYPE — #11. B's hillshade reads this source, so it can only go in once it exists.
+      applyRegisterOnLoad(map, register)
 
       // Added empty and filled in when the GLB lands. The alternative — waiting for the model
       // before adding the layer — leaves a window where the map is interactive and the layer is
       // not in the style, and #8's Paths would have to reproduce the same dance.
-      const models = createModelLayer('diorama-models')
+      const models = createModelLayer('diorama-models', register.light)
       map.addLayer(models)
 
       const origins = tracerOrigins(markerCount())
+      const points: LabelPoint[] = origins.map((origin, i) => ({
+        id: `tracer-${i}`,
+        origin,
+        name: TRACER_NAMES[i % TRACER_NAMES.length],
+      }))
+
+      // PROTOTYPE — #11. Deliberately added *after* the model layer: the question is whether
+      // MapLibre lets a symbol layer draw over a custom 3D one, and asking it any other way
+      // answers a different question.
+      if (register.labels === 'symbol') addSymbolLabels(map, points)
+      if (register.labels === 'dom') addDomLabels(map, points)
 
       void Promise.all(
-        origins.map(async (origin, i): Promise<Anchor> => ({
-          id: `tracer-${i}`,
-          origin,
-          content: await buildStayMarker(),
-        })),
+        points.map(async (point): Promise<Anchor> => {
+          const content = await buildStayMarker(register.light.shadowOpacity)
+          if (register.labels === 'sprite')
+            content.add(buildSpriteLabel(point.name))
+          return { id: point.id, origin: point.origin, content }
+        }),
       ).then((anchors) => {
         if (live) models.setAnchors(anchors)
       })

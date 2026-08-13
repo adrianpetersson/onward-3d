@@ -29,6 +29,28 @@ import {
  * nothing in this file has to watch `projectionTransition`.
  */
 
+/**
+ * The whole light, as data. #11 has to compare several of these side by side, and a light that lives
+ * in module constants can only ever be the one the last edit left behind.
+ */
+export type LightSpec = {
+  sun: {
+    color: number
+    intensity: number
+    /** Local-frame direction, normalised by three; `+x` east, `+y` up, `+z` south. */
+    position: readonly [number, number, number]
+  }
+  sky: {
+    /** Overhead. */
+    color: number
+    /** Bounce, off whatever the ground is made of. */
+    ground: number
+    intensity: number
+  }
+  /** How dark a cast shadow lands on the catcher, 0–1. */
+  shadowOpacity: number
+}
+
 export const SUN = {
   color: 0xfff4e2,
   intensity: 2.9,
@@ -44,6 +66,13 @@ export const SKY = {
   intensity: 1.6,
 }
 
+/** #7's light: the matte-toy read the tracer was shot under, and the baseline #11 argues with. */
+export const DIORAMA_LIGHT: LightSpec = {
+  sun: SUN,
+  sky: SKY,
+  shadowOpacity: 0.32,
+}
+
 /**
  * How far the sun's shadow camera reaches, in metres from the anchor. An 8 m guesthouse throws a
  * shadow a few metres long; 60 m is slack enough for a Stay Marker on a slope without spending the
@@ -52,12 +81,12 @@ export const SKY = {
 const SHADOW_EXTENT_M = 60
 
 /** One rig per scene. Lights are not draw calls, so a scene per layer costs nothing to light. */
-export function buildDioramaLight(): Group {
+export function buildDioramaLight(spec: LightSpec = DIORAMA_LIGHT): Group {
   const rig = new Group()
   rig.name = 'diorama-light'
 
-  const sun = new DirectionalLight(SUN.color, SUN.intensity)
-  sun.position.set(...SUN.position)
+  const sun = new DirectionalLight(spec.sun.color, spec.sun.intensity)
+  sun.position.set(...spec.sun.position)
   sun.castShadow = true
   sun.shadow.mapSize.set(1024, 1024)
 
@@ -72,7 +101,10 @@ export function buildDioramaLight(): Group {
   // nothing in contact accuracy that the eye can find.
   sun.shadow.bias = -0.002
 
-  rig.add(sun, new HemisphereLight(SKY.color, SKY.ground, SKY.intensity))
+  rig.add(
+    sun,
+    new HemisphereLight(spec.sky.color, spec.sky.ground, spec.sky.intensity),
+  )
 
   return rig
 }
@@ -89,11 +121,14 @@ export function buildDioramaLight(): Group {
  * slope the disc will cut into the hillside on one side and hover on the other, which is why it is
  * kept small and why draping it is left as a real limitation rather than papered over.
  */
-export function buildShadowCatcher(radiusM: number): Mesh {
+export function buildShadowCatcher(
+  radiusM: number,
+  opacity: number = DIORAMA_LIGHT.shadowOpacity,
+): Mesh {
   const catcher = new Mesh(
     new CircleGeometry(radiusM, 48),
     new ShadowMaterial({
-      opacity: 0.32,
+      opacity,
       // Ground level is exactly where MapLibre's terrain is too, and a tie in the depth buffer
       // flickers. Nudge the catcher back so the terrain always wins the coincident pixels.
       polygonOffset: true,

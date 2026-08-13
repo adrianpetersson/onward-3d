@@ -1,0 +1,118 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - region "Map" [ref=e5]
+    - generic:
+      - generic [ref=e6]:
+        - button "Zoom in" [ref=e7] [cursor=pointer]
+        - button "Zoom out" [ref=e9] [cursor=pointer]
+        - button "Drag to rotate map, click to reset north" [ref=e11]
+      - group [ref=e13]:
+        - generic [ref=e14]:
+          - text: "Search:"
+          - link "Photon" [ref=e15] [cursor=pointer]:
+            - /url: https://photon.komoot.io/
+          - text: /
+          - link "OpenStreetMap" [ref=e16] [cursor=pointer]:
+            - /url: https://www.openstreetmap.org/copyright
+  - complementary [ref=e17]:
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - textbox "Name this trip" [ref=e20]: Southeast Asia
+        - paragraph [ref=e21]: 5 stops · 22 nights · 13 Dec – 5 Jan
+      - button "✕" [ref=e22]
+    - generic [ref=e23]:
+      - button "⌂ Copenhagen" [ref=e25]:
+        - generic [ref=e26]: ⌂
+        - generic [ref=e27]: Copenhagen
+      - generic [ref=e28]:
+        - button "✈ flight · Air China · 14:20" [ref=e31]:
+          - generic [ref=e32]: ✈
+          - generic [ref=e33]:
+            - text: flight
+            - generic [ref=e34]: · Air China
+            - generic [ref=e35]: · 14:20
+        - button "⣿ Booked and placed Bangkok 14 Dec – 17 Dec · 3 nights ▼" [ref=e37]:
+          - generic [ref=e38]: ⣿
+          - generic "Booked and placed" [ref=e39]
+          - generic [ref=e40]:
+            - generic [ref=e41]: Bangkok
+            - generic [ref=e42]: 14 Dec – 17 Dec · 3 nights
+          - generic [ref=e43]: ▼
+      - generic [ref=e45]:
+        - 'button "🚆 train + van · SRT #83 sleeper + transfer · 17:05" [ref=e48]':
+          - generic [ref=e49]: 🚆
+          - generic [ref=e50]:
+            - text: train + van
+            - generic [ref=e51]: "· SRT #83 sleeper + transfer"
+            - generic [ref=e52]: · 17:05
+        - button "⣿ Booked and placed Koh Kradan 18 Dec – 23 Dec · 5 nights ▼" [ref=e54]:
+          - generic [ref=e55]: ⣿
+          - generic "Booked and placed" [ref=e56]
+          - generic [ref=e57]:
+            - generic [ref=e58]: Koh Kradan
+            - generic [ref=e59]: 18 Dec – 23 Dec · 5 nights
+          - generic [ref=e60]: ▼
+      - generic [ref=e62]:
+        - button "🛥 boat · longtail, arranged at the resort · 11:00 to book" [ref=e65]:
+          - generic [ref=e66]: 🛥
+          - generic [ref=e67]:
+            - text: boat
+            - generic [ref=e68]: · longtail, arranged at the resort
+            - generic [ref=e69]: · 11:00
+          - generic [ref=e70]: to book
+        - button "⣿ Booked, but not placed yet — paste a link and the building moves to its own beach Koh Mook 23 Dec – 28 Dec · 5 nights ▼" [ref=e72]:
+          - generic [ref=e73]: ⣿
+          - generic "Booked, but not placed yet — paste a link and the building moves to its own beach" [ref=e74]
+          - generic [ref=e75]:
+            - generic [ref=e76]: Koh Mook
+            - generic [ref=e77]: 23 Dec – 28 Dec · 5 nights
+          - generic [ref=e78]: ▼
+      - generic [ref=e80]:
+        - button "⛴ ferry · Tigerline · 13:30 to book" [ref=e83]:
+          - generic [ref=e84]: ⛴
+          - generic [ref=e85]:
+            - text: ferry
+            - generic [ref=e86]: · Tigerline
+            - generic [ref=e87]: · 13:30
+          - generic [ref=e88]: to book
+        - button "⣿ Nothing booked here yet Koh Lanta 28 Dec – 2 Jan · 5 nights ▼" [ref=e90]:
+          - generic [ref=e91]: ⣿
+          - generic "Nothing booked here yet" [ref=e92]
+          - generic [ref=e93]:
+            - generic [ref=e94]: Koh Lanta
+            - generic [ref=e95]: 28 Dec – 2 Jan · 5 nights
+          - generic [ref=e96]: ▼
+      - generic [ref=e98]:
+        - button "🚌 bus · 08:00 to book" [ref=e101]:
+          - generic [ref=e102]: 🚌
+          - generic [ref=e103]:
+            - text: bus
+            - generic [ref=e104]: · 08:00
+          - generic [ref=e105]: to book
+        - button "⣿ Nothing booked here yet Krabi Town 2 Jan – 5 Jan · 3 nights ▼" [ref=e107]:
+          - generic [ref=e108]: ⣿
+          - generic "Nothing booked here yet" [ref=e109]
+          - generic [ref=e110]:
+            - generic [ref=e111]: Krabi Town
+            - generic [ref=e112]: 2 Jan – 5 Jan · 3 nights
+          - generic [ref=e113]: ▼
+      - generic [ref=e115]:
+        - button "✈ flight · Thai + SAS · 09:15 to book" [ref=e117]:
+          - generic [ref=e118]: ✈
+          - generic [ref=e119]:
+            - text: flight
+            - generic [ref=e120]: · Thai + SAS
+            - generic [ref=e121]: · 09:15
+          - generic [ref=e122]: to book
+        - paragraph [ref=e123]: ↩ Copenhagen
+    - generic [ref=e124]:
+      - generic [ref=e125]: No unsaved changes
+      - generic [ref=e126]:
+        - button "Discard" [disabled] [ref=e127]
+        - button "Save & redraw" [disabled] [ref=e128]
+  - generic [ref=e129]:
+    - button "previous register" [ref=e130]: ‹
+    - generic [ref=e131]:
+      - generic [ref=e132]: A — Chart
+      - generic [ref=e133]: Contrast carries the coast; geometry carries the relief.
+    - button "next register" [ref=e134]: ›

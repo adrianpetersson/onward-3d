@@ -1,0 +1,168 @@
+/*
+ * PROTOTYPE — #11. The sidebar's answer to "does the UI match the toy register, or contrast with it".
+ *
+ * These override the sidebar's own Tailwind rather than forking `Sidebar.tsx` three ways: the
+ * question is what the chrome should *be*, and 9 kB of duplicated card markup would not make that
+ * any easier to see. The class lands on <html>, so a register owns the whole document — type as well
+ * as panel.
+ *
+ * Every selector here is throwaway. The winner is rewritten into the components properly.
+ */
+
+/* --------------------------------------------------------------------------
+ * A — Chart: the instrument matches the map. Flat, hairline, square, quiet.
+ * -------------------------------------------------------------------------- */
+
+html.chrome-chart {
+  --diorama-ink: #2f2c26;
+  --diorama-paper: #f7f4ed;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+html.chrome-chart aside {
+  width: 380px;
+  background: var(--diorama-paper);
+  border-right: 1px solid rgba(47, 44, 38, 0.16);
+  box-shadow: none;
+  backdrop-filter: none;
+  font-size: 12.5px;
+  letter-spacing: 0.005em;
+}
+
+html.chrome-chart aside header,
+html.chrome-chart aside footer {
+  background: transparent;
+  border-color: rgba(47, 44, 38, 0.14);
+}
+
+/* Square everything: a chart has no rounded corners. */
+html.chrome-chart aside button,
+html.chrome-chart aside input,
+html.chrome-chart aside .rounded,
+html.chrome-chart aside .rounded-md {
+  border-radius: 0;
+}
+
+html.chrome-chart aside .bg-black {
+  background: var(--diorama-ink);
+}
+
+/* --------------------------------------------------------------------------
+ * B — Relief: a solid, warm, slightly chunky panel that does NOT pretend to be
+ * part of the toy world. The world is playful; the desk it sits on is not.
+ * -------------------------------------------------------------------------- */
+
+html.chrome-panel {
+  --diorama-ink: #3a3226;
+  --diorama-panel: #efe6d2;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+html.chrome-panel aside {
+  width: 440px;
+  background: var(--diorama-panel);
+  border-right: 3px solid #d8c9a8;
+  box-shadow: 6px 0 32px rgba(58, 50, 38, 0.28);
+  backdrop-filter: none;
+  font-size: 13.5px;
+  color: var(--diorama-ink);
+}
+
+html.chrome-panel aside header {
+  background: #e6d9bd;
+  border-bottom: 1px solid #d0bd98;
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+html.chrome-panel aside footer {
+  background: #e6d9bd;
+  border-top: 1px solid #d0bd98;
+}
+
+html.chrome-panel aside button,
+html.chrome-panel aside .rounded,
+html.chrome-panel aside .rounded-md {
+  border-radius: 8px;
+}
+
+html.chrome-panel aside .bg-black {
+  background: #2f6f5e;
+}
+
+/* --------------------------------------------------------------------------
+ * C — Cutout: the panel is an object lying on top of the model, not a wall
+ * beside it. Inset from every edge, rounded, and casting its own shadow.
+ * -------------------------------------------------------------------------- */
+
+html.chrome-float {
+  --diorama-ink: #2b2b28;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+html.chrome-float aside {
+  inset: 18px auto 18px 18px;
+  width: 400px;
+  border-radius: 16px;
+  background: rgba(252, 250, 245, 0.93);
+  box-shadow:
+    0 18px 48px rgba(40, 36, 28, 0.32),
+    0 2px 6px rgba(40, 36, 28, 0.18);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  font-size: 13px;
+}
+
+html.chrome-float aside header {
+  background: rgba(255, 255, 255, 0.5);
+  border-bottom: 1px solid rgba(43, 43, 40, 0.1);
+}
+
+html.chrome-float aside footer {
+  background: rgba(255, 255, 255, 0.5);
+  border-top: 1px solid rgba(43, 43, 40, 0.1);
+}
+
+html.chrome-float aside button,
+html.chrome-float aside .rounded,
+html.chrome-float aside .rounded-md {
+  border-radius: 10px;
+}
+
+/* Floating chrome means the attribution is no longer tucked behind a full-height panel. */
+html.chrome-float .maplibregl-ctrl-bottom-left {
+  margin-left: 436px;
+}
+
+/* --------------------------------------------------------------------------
+ * The DOM label mechanism (register B). Lives here because it is chrome: it is
+ * HTML sitting over the canvas, styled by the document, not by three.js.
+ * -------------------------------------------------------------------------- */
+
+.diorama-label {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(250, 246, 236, 0.94);
+  border: 1px solid rgba(58, 50, 38, 0.18);
+  box-shadow: 0 2px 8px rgba(58, 50, 38, 0.22);
+  color: #3a3226;
+  font:
+    600 12px/1.2 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  white-space: nowrap;
+  transform: translateY(-14px);
+  pointer-events: none;
+}

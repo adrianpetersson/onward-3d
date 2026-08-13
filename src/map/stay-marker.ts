@@ -23,13 +23,13 @@ import { loadModel } from './models/load'
 /** Wide enough for the shadow of an 8 m ridge in the late afternoon, and no wider. */
 const SHADOW_RADIUS_M = 14
 
-export async function buildStayMarker(): Promise<Group> {
+export async function buildStayMarker(shadowOpacity?: number): Promise<Group> {
   const marker = new Group()
   marker.name = 'stay-marker'
 
   marker.add(
     await loadModel('stay_guesthouse'),
-    buildShadowCatcher(SHADOW_RADIUS_M),
+    buildShadowCatcher(SHADOW_RADIUS_M, shadowOpacity),
   )
 
   return marker

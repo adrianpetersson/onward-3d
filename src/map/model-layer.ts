@@ -5,7 +5,7 @@ import type {
   Map as MapLibreMap,
 } from 'maplibre-gl'
 
-import { buildDioramaLight } from './diorama-light'
+import { buildDioramaLight, type LightSpec } from './diorama-light'
 import { getModelMatrix, type LngLatTuple } from './model-matrix'
 
 /**
@@ -77,12 +77,12 @@ export type ModelLayer = CustomLayerInterface & {
   setAnchors: (anchors: readonly Anchor[]) => void
 }
 
-export function createModelLayer(id: string): ModelLayer {
+export function createModelLayer(id: string, light?: LightSpec): ModelLayer {
   let map: MapLibreMap | undefined
   let renderer: WebGLRenderer | undefined
 
   const scene = new Scene()
-  scene.add(buildDioramaLight())
+  scene.add(buildDioramaLight(light))
 
   // MapLibre owns the projection, so the camera never computes one of its own — `render` assigns
   // the matrix directly. A bare Camera is what MapLibre's own three.js examples use.
