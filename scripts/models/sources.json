@@ -1,0 +1,219 @@
+{
+  "$comment": [
+    "The model pipeline's manifest. Every asset Onward ships is listed here with the licence it",
+    "arrives under and the URL it came from, so the SaaS licence question is answerable later",
+    "without redoing #4's research.",
+    "",
+    "SCALE. 'target' is the real-world size the asset should read at, in metres, on the named axis.",
+    "The model matrix maps one unit to one metre (src/map/model-matrix.ts), so scale is solved as",
+    "target.metres / the measured extent on that axis. Source units are worthless across kits: a",
+    "suburban house is 0.74 units tall while a van is 2.75 units long.",
+    "",
+    "The axis is HEIGHT for every Kenney model, and that is the finding that matters here. Kenney's",
+    "vehicles are modelled faithfully in cross-section and heavily compressed in length — a",
+    "double-deck carriage is 1.28 wide, 1.92 tall and only 2.5 long, where a real one is 26 m long",
+    "on a 3 m body. Solving for a true 26 m length gives a carriage 20 m TALL, which towers over an",
+    "8 m guesthouse and destroys the one-world read. Solving for a true height instead leaves each",
+    "piece stubby — which is the toy register the Diorama already committed to — and the set sits",
+    "together. The trains ship as a/b/c segments precisely so length comes from coupling them.",
+    "",
+    "The converted airliner is the opposite case: faithful in plan, exaggerated in fin height, so it",
+    "is solved on wingspan.",
+    "",
+    "ORIENTATION. 'forward' is the direction the model's nose points in its own source axes, and it is",
+    "DECLARED rather than inferred. Inference was tried first and is not trustworthy: the largest",
+    "horizontal extent is the airliner's WINGSPAN, not its fuselage, and an outer-fifth taper test",
+    "reads a van's cargo box as its nose.",
+    "",
+    "Each declaration has a witness. Seven of the nine vehicles are confirmed by Kenney's own node",
+    "names — `wheel-front-right` at z +0.76 against `wheel-back-right` at -0.76 — which is the author",
+    "stating it outright. The two single-node watercraft have no such names and were settled by the",
+    "station profiles in scripts/models/stations.mjs plus docs/models/contact-sheet.png. build.mjs",
+    "re-runs the best available witness on every build and warns when it disagrees with the",
+    "declaration, so a newly added asset gets flagged rather than silently trusted.",
+    "",
+    "Every model in the set turned out to face +Z, Kenney's own convention and the one the converted",
+    "airliner was matched to.",
+    "",
+    "Fingerprinted Kenney URLs go stale when a pack is updated. If one 404s, re-read the pack page",
+    "linked as 'page' and replace both 'url' and 'bytes'."
+  ],
+
+  "kits": [
+    {
+      "id": "watercraft",
+      "name": "Kenney Watercraft Kit 2.1",
+      "page": "https://kenney.nl/assets/watercraft-kit",
+      "url": "https://kenney.nl/media/pages/assets/watercraft-kit/a335cfed49-1713519620/kenney_watercraft-pack.zip",
+      "archive": "kenney_watercraft-pack.zip",
+      "bytes": 1870991,
+      "licence": "CC0-1.0",
+      "author": "Kenney"
+    },
+    {
+      "id": "train",
+      "name": "Kenney Train Kit 1.1",
+      "page": "https://kenney.nl/assets/train-kit",
+      "url": "https://kenney.nl/media/pages/assets/train-kit/cf8521d625-1727040883/kenney_train-kit.zip",
+      "archive": "kenney_train-kit.zip",
+      "bytes": 5266588,
+      "licence": "CC0-1.0",
+      "author": "Kenney",
+      "additionalCredits": ["Guus Vermeulen", "Tony Schaer"]
+    },
+    {
+      "id": "car",
+      "name": "Kenney Car Kit 3.1",
+      "page": "https://kenney.nl/assets/car-kit",
+      "url": "https://kenney.nl/media/pages/assets/car-kit/1a312ec241-1775131960/kenney_car-kit.zip",
+      "archive": "kenney_car-kit.zip",
+      "bytes": 4814237,
+      "licence": "CC0-1.0",
+      "author": "Kenney"
+    },
+    {
+      "id": "modular-buildings",
+      "name": "Kenney Modular Buildings 2.1",
+      "page": "https://kenney.nl/assets/modular-buildings",
+      "url": "https://kenney.nl/media/pages/assets/modular-buildings/3253b4219a-1707397411/kenney_modular-buildings.zip",
+      "archive": "kenney_modular-buildings.zip",
+      "bytes": 1825490,
+      "licence": "CC0-1.0",
+      "author": "Kenney"
+    }
+  ],
+
+  "singles": [
+    {
+      "id": "airliner-obj",
+      "name": "Funky aircraft, LOD low",
+      "page": "https://opengameart.org/content/funky-aircraft",
+      "url": "https://opengameart.org/sites/default/files/low_0.obj",
+      "file": "funky-aircraft-low.obj",
+      "bytes": 15417,
+      "licence": "CC0-1.0",
+      "author": "Savino"
+    }
+  ],
+
+  "assets": [
+    {
+      "id": "boat-speed",
+      "mode": "boat",
+      "role": "vehicle",
+      "kit": "watercraft",
+      "glb": "boat-speed-a.glb",
+      "target": { "axis": "y", "metres": 2.2 },
+      "forward": "+z",
+      "note": "A small open longtail-ish boat: the island-hop register. Reads at ~4.9 m long."
+    },
+    {
+      "id": "ferry",
+      "mode": "ferry",
+      "role": "vehicle",
+      "kit": "watercraft",
+      "glb": "ship-ocean-liner-small.glb",
+      "target": { "axis": "y", "metres": 10 },
+      "forward": "+z",
+      "note": "Funnelled passenger liner, near fore-aft symmetric. The bow is the finer end: tip half-beam 0.30 units against 0.94 at the stern. Reads at ~17 m long."
+    },
+    {
+      "id": "train-sleeper-nose",
+      "mode": "train",
+      "role": "vehicle",
+      "kit": "train",
+      "glb": "train-electric-double-a.glb",
+      "target": { "axis": "y", "metres": 4.6 },
+      "forward": "+z",
+      "note": "Double-deck set, nose — the cab end is both lower and narrower. The sleeper read; #4 judged the kit's own carriages freight-bodied."
+    },
+    {
+      "id": "train-sleeper-middle",
+      "mode": "train",
+      "role": "vehicle",
+      "kit": "train",
+      "glb": "train-electric-double-b.glb",
+      "target": { "axis": "y", "metres": 4.6 },
+      "forward": "+z",
+      "note": "Middle segment, fore-aft symmetric: yaw is arbitrary and set to 0 for consistency."
+    },
+    {
+      "id": "train-sleeper-tail",
+      "mode": "train",
+      "role": "vehicle",
+      "kit": "train",
+      "glb": "train-electric-double-c.glb",
+      "target": { "axis": "y", "metres": 4.6 },
+      "forward": "+z",
+      "note": "Tail segment."
+    },
+    {
+      "id": "train-intercity-nose",
+      "mode": "train",
+      "role": "vehicle",
+      "kit": "train",
+      "glb": "train-electric-bullet-a.glb",
+      "target": { "axis": "y", "metres": 4 },
+      "forward": "+z",
+      "note": "High-speed set, nose — tapers from 0.65 to 0.24 half-beam at the +z tip. The daytime intercity read."
+    },
+    {
+      "id": "train-intercity-middle",
+      "mode": "train",
+      "role": "vehicle",
+      "kit": "train",
+      "glb": "train-electric-bullet-b.glb",
+      "target": { "axis": "y", "metres": 4 },
+      "forward": "+z",
+      "note": "Middle segment, fore-aft symmetric."
+    },
+    {
+      "id": "train-intercity-tail",
+      "mode": "train",
+      "role": "vehicle",
+      "kit": "train",
+      "glb": "train-electric-bullet-c.glb",
+      "target": { "axis": "y", "metres": 4 },
+      "forward": "+z",
+      "note": "Tail segment."
+    },
+    {
+      "id": "van",
+      "mode": "bus",
+      "role": "vehicle",
+      "kit": "car",
+      "glb": "van.glb",
+      "target": { "axis": "y", "metres": 2.6 },
+      "forward": "+z",
+      "note": "No CC0 bus exists anywhere #4 checked, and a van is the truer depiction of a minibus hop regardless. The bonnet is the +z end: body height falls from 1.35 to 0.72 units. Reads at ~5.3 m long."
+    },
+    {
+      "id": "stay-guesthouse",
+      "role": "stay",
+      "kit": "modular-buildings",
+      "glb": "building-sample-house-b.glb",
+      "target": { "axis": "y", "metres": 8 },
+      "note": "Cream two-block guesthouse with pitched gable roofs, 374 tris — #4 described the kit as flat-roofed cubes, which is true of its modular pieces but not of this pre-assembled sample. Scaled by height because it stands rather than travels, so 8 m is the RIDGE: eaves land at 6.1 m and the footprint at ~4.4 × 8.9 m."
+    },
+    {
+      "id": "airliner",
+      "mode": "flight",
+      "role": "vehicle",
+      "single": "airliner-obj",
+      "target": { "axis": "x", "metres": 60 },
+      "forward": "+z",
+      "note": "Untextured, which is an advantage: Onward owns its colour. Solved on wingspan — the fuselage is the SHORTER horizontal axis on this model, and its fin is proportionally tall, so neither length nor height is a safe reference. Reads at 60 m span, ~46.5 m long."
+    }
+  ],
+
+  "notTaken": [
+    "Kenney Retro Urban Kit — 22 discrete textures, breaks the one-atlas-per-kit convention",
+    "Kenney City Kit Suburban — North-American suburbia, wrong register for a Stay",
+    "Kenney Pirate Kit as a Stay — its structures are docks, not huts. Bookmarked for island dressing",
+    "Quaternius Small Ship via Poly Pizza — 5,578 tris, twice the densest Kenney model",
+    "Poly Pizza CC-BY airliner — would add a permanent attribution surface Onward does not otherwise need",
+    "Poly Pizza Hut (CC0, 632 tris) — deferred to #11, where there is a palette to judge it against",
+    "Any Poly Pizza model by an unknown uploader — the site has no reachable terms page, so a label is a claim",
+    "The model titled Boeing 747 — CC0 waives copyright, never trademark"
+  ]
+}
