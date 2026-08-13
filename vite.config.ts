@@ -17,6 +17,12 @@ export default defineConfig({
     // Everything under test is pure — matrices, and the provider config that feeds them. Nothing
     // here needs a DOM, and a WebGL canvas is not something a unit test can honestly assert on.
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: [
+      'src/**/*.test.ts',
+      // The one exception: the model pipeline's own test reads the shipped GLBs off disk to prove
+      // their texture atlases are embedded, which is a silent failure in the browser otherwise. It
+      // sits outside `src` so that node types stay out of this browser-only app's tsconfig.
+      'scripts/**/*.test.mjs',
+    ],
   },
 })
