@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+
+/*
+ * Onward is desktop-only: there are no breakpoints here, and there should not be. The Diorama fills
+ * the viewport, so the document itself has to be full height with nothing to scroll.
+ */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+}
