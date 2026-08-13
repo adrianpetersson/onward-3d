@@ -137,6 +137,138 @@ describe('getGlobeModelMatrix', () => {
   })
 })
 
+/**
+ * Which way the local axes point on the ground — the thing anything placed *inside* an anchor has to
+ * know, and the one fact neither matrix states out loud. The Diorama's sun leans on it (see
+ * `diorama-light.ts`) and #8's heading will lean on it harder.
+ */
+describe('what the local axes mean on the compass', () => {
+  /** The direction one local axis ends up pointing, as a unit vector in the projection's own space. */
+  const axisDirection = (matrix: Matrix4, axis: Vector3) =>
+    axis.clone().applyMatrix4(matrix).sub(modelOrigin(matrix)).normalize()
+
+  const [X, Y, Z] = AXES
+
+  describe('mercator', () => {
+    // Mercator space is x east, y **south** — the y axis grows downward on the tile grid — and z up.
+    const EAST = new Vector3(1, 0, 0)
+    const SOUTH = new Vector3(0, 1, 0)
+    const UP = new Vector3(0, 0, 1)
+
+    it.each(PLACES)('points +x east at %s', (_name, place) => {
+      expect(
+        axisDirection(getMercatorModelMatrix(place), X).dot(EAST),
+      ).toBeCloseTo(1, 12)
+    })
+
+    it.each(PLACES)('points +y up at %s', (_name, place) => {
+      expect(
+        axisDirection(getMercatorModelMatrix(place), Y).dot(UP),
+      ).toBeCloseTo(1, 12)
+    })
+
+    it.each(PLACES)('points +z south at %s', (_name, place) => {
+      // South, not north — mercator's y axis grows downward, and the model matrix does not undo it.
+      // Every model in the set faces +z (#17), so a Stay Marker's gable faces away from the pole
+      // until something turns it.
+      expect(
+        axisDirection(getMercatorModelMatrix(place), Z).dot(SOUTH),
+      ).toBeCloseTo(1, 12)
+    })
+  })
+
+  describe('globe', () => {
+    const radians = (deg: number) => (deg * Math.PI) / 180
+
+    /** The local east / north / up triad on the sphere, in the globe frame's own coordinates. */
+    const triad = ([lng, lat]: LngLatTuple) => {
+      const phi = radians(lat)
+      const lambda = radians(lng)
+
+      return {
+        east: new Vector3(Math.cos(lambda), 0, -Math.sin(lambda)),
+        north: new Vector3(
+          -Math.sin(phi) * Math.sin(lambda),
+          Math.cos(phi),
+          -Math.sin(phi) * Math.cos(lambda),
+        ),
+        up: new Vector3(
+          Math.cos(phi) * Math.sin(lambda),
+          Math.sin(phi),
+          Math.cos(phi) * Math.cos(lambda),
+        ),
+      }
+    }
+
+    it.each(PLACES)('points +x east at %s', (_name, place) => {
+      expect(
+        axisDirection(getGlobeModelMatrix(place), X).dot(triad(place).east),
+      ).toBeCloseTo(1, 12)
+    })
+
+    it.each(PLACES)('points +y up at %s', (_name, place) => {
+      expect(
+        axisDirection(getGlobeModelMatrix(place), Y).dot(triad(place).up),
+      ).toBeCloseTo(1, 12)
+    })
+
+    it.each(PLACES)(
+      'points +z south at %s — the same way mercator does',
+      (_name, place) => {
+        expect(
+          axisDirection(getGlobeModelMatrix(place), Z).dot(triad(place).north),
+        ).toBeCloseTo(-1, 12)
+      },
+    )
+  })
+
+  /**
+   * The frames disagree on handedness — mercator's determinant is negative and the globe's is not —
+   * and it is worth being exact about what that costs, because #2 guessed it would cost a heading
+   * sign and it does not.
+   *
+   * The two matrices send the local axes to the *same* three compass directions. The determinants
+   * differ only because mercator space measures y southward and globe space measures it northward,
+   * so the same geography needs opposite handedness to express it. What flips is therefore
+   * chirality, not bearing: a Vehicle turned by the same yaw points the same way on the compass in
+   * both, but its left and right swap over. On a low-poly toy that is invisible; on anything with
+   * lettering down one side it would not be.
+   */
+  describe('what the mirrored mercator frame actually costs', () => {
+    const EAST_MERCATOR = new Vector3(1, 0, 0)
+
+    /** Where a model's nose ends up after yawing it about its own up axis. */
+    const noseAfterYaw = (matrix: Matrix4, yaw: number) => {
+      const nose = new Vector3(0, 0, 1).applyMatrix4(
+        new Matrix4().makeRotationY(yaw),
+      )
+      return nose.applyMatrix4(matrix).sub(modelOrigin(matrix)).normalize()
+    }
+
+    it('turns a nose the same way on the compass under both projections', () => {
+      // A quarter turn takes a +z nose from south to east. If the sign of a heading differed
+      // between the frames, one of these would come out west.
+      const quarter = Math.PI / 2
+
+      expect(
+        noseAfterYaw(getMercatorModelMatrix(KOH_MOOK), quarter).dot(
+          EAST_MERCATOR,
+        ),
+      ).toBeCloseTo(1, 12)
+
+      const globeEast = new Vector3(
+        Math.cos((KOH_MOOK[0] * Math.PI) / 180),
+        0,
+        -Math.sin((KOH_MOOK[0] * Math.PI) / 180),
+      )
+
+      expect(
+        noseAfterYaw(getGlobeModelMatrix(KOH_MOOK), quarter).dot(globeEast),
+      ).toBeCloseTo(1, 12)
+    })
+  })
+})
+
 describe('getModelMatrix', () => {
   const elements = (matrix: Matrix4) => matrix.elements.slice()
 

@@ -25,10 +25,19 @@ the Leg into each one annotated with its Mode, times, carrier and fare, and Stay
 references and cancellation deadlines. The shape it captures is settled and tested: see
 [`src/itinerary/model.ts`](./src/itinerary/model.ts) and [#10](../../issues/10).
 
-**What doesn't: the half that makes it worth looking at.** The Itinerary is not drawn yet. The map is
-still the scaffold's pitched view over Koh Mook with one orange triangle standing on the terrain — the
-proof that a three.js model lands on a real coordinate, and nothing more. Paths, Pins and Stay Markers
-are [#8](../../issues/8), [#9](../../issues/9) and [#7](../../issues/7).
+**What also works: one real building, on a real beach.** The scaffold's orange triangle is gone. A
+CC0 low-poly guesthouse now stands at Ao Niang Resort on Koh Kradan at true metre scale — lit, casting
+a shadow, and cut off correctly by the hillside if you sink it into one. It lands within 0.001 px of
+where MapLibre itself projects the coordinate. See [#7](../../issues/7) and
+[`docs/tracer/`](./docs/tracer/).
+
+**What doesn't: the Itinerary is still not drawn.** That building is a tracer at a hard-coded
+coordinate, not a Stay from your trip — nothing in the sidebar reaches the map yet. Paths and Vehicles
+are [#8](../../issues/8); Pins and the Stay Marker's real behaviour are [#9](../../issues/9).
+
+One thing the tracer settled that shapes both: at true metre scale an 8 m building is **5.9 px tall at
+z16 and 1.5 px at z14**, so a Stay Marker is invisible at any zoom that shows more than one Stop. Some
+form of zoom compensation is not optional — see [#11](../../issues/11).
 
 Two other gaps worth knowing before you try it: there is **no search yet** ([#18](../../issues/18)), so a
 Stop takes a pasted coordinate or a Google Maps link rather than a name; and **nothing survives a reload**
@@ -62,6 +71,8 @@ something has gone wrong — see [#3](../../issues/3) and [ADR 0002](./docs/adr/
 - **[src/itinerary/model.ts](./src/itinerary/model.ts)** — the shape of an Itinerary, with the reason each
   field earned its place. Its companion [`derive.ts`](./src/itinerary/derive.ts) is the only place a
   derived fact exists: if something can be computed, storing it is a bug.
+- **[src/map/model-layer.ts](./src/map/model-layer.ts)** — how a three.js model gets anchored to a
+  coordinate and drawn inside MapLibre's own GL context, and why one layer holds every model.
 - **[docs/adr/](./docs/adr/)** — the decisions that would otherwise look arbitrary later.
 - **The wayfinder map** — what's decided, what's still open, and what's deliberately out of scope.
 
