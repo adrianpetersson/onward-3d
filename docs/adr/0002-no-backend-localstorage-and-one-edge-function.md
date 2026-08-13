@@ -1,13 +1,15 @@
-# No backend: localStorage, plus exactly one serverless function
+# No backend: a static bundle and localStorage, with no server-side code at all
 
 Onward is a static Vite SPA. The Itinerary lives in `localStorage`, and JSON export/import is the only
-backup mechanism. There is **one** serverless function in the whole system, and its only job is following
-`maps.app.goo.gl` redirects — because a browser cannot, CORS blocks it — so that a Stay can be placed from
-a phone share link. That function is not a backend and must not grow into one.
+backup mechanism. **There is no server-side code in the system — not a route, not a function.**
 
 This is deliberate, and it is the reason there is no database, no auth, no accounts and no API. The MVP
 has exactly one user, and every hour spent on a server is an hour not spent on the 3D map, which is the
 only part of this product that has to be good.
+
+> **Note on the filename.** This ADR was originally titled "…plus exactly one edge function" and the
+> filename still says so. The function was removed on 13 Aug 2026 — see the amendment at the end. The
+> filename is kept because an ADR's identity is its number, and renaming it would break references.
 
 ## Consequences
 
@@ -21,18 +23,28 @@ only part of this product that has to be good.
   redrawn — it belongs in a fresh effort, not in this one. See the
   [wayfinder map](https://github.com/adrianpetersson/onward/issues/1)'s out-of-scope list.
 
-## Amendment, 13 Aug 2026 — the function runs on Node, not Edge
+## Amendment, 13 Aug 2026 — the one function is gone; the count is now zero
 
-The original wording called this an "edge function". Research
-([#5](https://github.com/adrianpetersson/onward/issues/5),
-[findings](https://github.com/adrianpetersson/onward/blob/research/google-maps-link-coordinates/docs/research/google-maps-link-coordinates.md))
-established that Vercel's own documentation now recommends migrating _off_ the Edge runtime, and that
-Next.js 16.3 dropped `runtime = 'edge'` altogether. **Ship it on the Node.js runtime.** Still exactly one
-function; the constraint this ADR exists to enforce is unchanged.
+Onward was scoped **desktop-only** on 13 Aug 2026: it is for planning a future trip at a desk, not
+consulting one on the go.
 
-The same research also confirmed the necessity this ADR asserted: the `maps.app.goo.gl` 302 carries no
-`Access-Control-*` headers at all, and the preflight adds none, so a browser genuinely cannot read the
-`Location` header. The function is not a convenience.
+That removed the function's entire premise. The function existed to resolve `maps.app.goo.gl` short links,
+which is what the **phone** share sheet produces. Planning at a desk means the Google Maps URL is in the
+address bar, and research [#5](https://github.com/adrianpetersson/onward/issues/5) established that the
+address-bar form carries the place's own coordinate in its `!3d/!4d` fragment — **parseable with a regex,
+no network call.** A short link now degrades to click-to-place with a message, which was always the
+designed floor of the fallback ladder.
 
-**One hard requirement on it:** the host allowlist must be re-checked on _every_ redirect hop. Without
-that, this function is an open SSRF proxy, and it is the only server-side surface in the product.
+What that buys, beyond simplicity: **the product has no server-side attack surface at all.** #5 flagged
+that the resolver would need its host allowlist re-checked on every redirect hop or it would be an open
+SSRF proxy. That risk is now structurally absent rather than carefully managed, which is the better place
+for a security property to live.
+
+The CORS finding #5 verified still stands and is worth keeping on record — the `maps.app.goo.gl` 302
+carries no `Access-Control-*` headers and the preflight adds none, so a browser genuinely cannot follow it.
+That is _why_ short links cannot be supported client-side, and therefore why the fallback exists rather
+than a workaround.
+
+**If short-link pastes turn out to be a real annoyance in daily use, restoring the function is a fresh
+effort, not a resumption** — and it would arrive with the Node-runtime and per-hop-allowlist requirements
+#5 documented. Hosting stays purely static in the meantime.
