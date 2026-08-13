@@ -50,6 +50,20 @@ _Avoid_: provisional, tentative, hold, backup
 A Stay that is a named target and nothing more: no reference, nothing committed.
 _Avoid_: candidate, option, maybe
 
+## Where it lives
+
+**Store**:
+Every Trip Onward holds, together with which one is open. It is one JSON document, written whole to the
+File and cached whole in the browser — so a Store with one Trip in it is the ordinary case, not a
+degenerate one. The plural is deliberate: multi-trip is later a change of interface, never a migration.
+_Avoid_: save file, database, state, storage
+
+**File**:
+The JSON document on the traveller's own disk, chosen once, holding the Store. It is the **source of
+truth** — the browser's copy is only a cache of it — and it is the reason clearing a browser costs
+nothing. Not an export: nothing is exported, because there is nowhere else for the Itinerary to live.
+_Avoid_: export, backup, download, dump
+
 ## The map
 
 **Diorama**:

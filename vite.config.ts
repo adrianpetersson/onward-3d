@@ -11,7 +11,20 @@ export default defineConfig({
 
   plugins: [tailwindcss(), viteReact()],
 
-  server: { port: 3000 },
+  // 3000 unless something has assigned one. A pinned port means two checkouts of Onward — a worktree
+  // per ticket, which is how this repo is actually worked — cannot both run, and the second fails on a
+  // port collision rather than moving over. `process` is deliberately untyped here: the project carries
+  // no `@types/node`, and reading one variable is not a reason to start.
+  server: {
+    port:
+      Number(
+        (
+          globalThis as {
+            process?: { env?: Record<string, string | undefined> }
+          }
+        ).process?.env?.PORT,
+      ) || 3000,
+  },
 
   test: {
     // Everything under test is pure — matrices, and the provider config that feeds them. Nothing

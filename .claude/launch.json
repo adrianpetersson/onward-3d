@@ -4,8 +4,8 @@
     {
       "name": "onward",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
-      "port": 3000
+      "runtimeArgs": ["exec", "vite", "dev"],
+      "autoPort": true
     }
   ]
 }
