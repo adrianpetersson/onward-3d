@@ -63,8 +63,15 @@ and nothing to configure — see [#12](../../issues/12) and
 [ADR 0004](./docs/adr/0004-the-file-is-the-truth-localstorage-is-a-cache.md). Chrome or Edge on the
 desktop, since Firefox and Safari have no file picker; they run on the cache alone and say so.
 
-One gap left worth knowing before you try it: there is **no search yet** ([#18](../../issues/18)), so a
-Stop is placed by pasting or by clicking the map rather than by name.
+**And you can now find a Stop by typing its name.** Type into a new Stop's Name box and the places it
+could be drop down underneath; pick one and the coordinate lands. It searches with **both spellings of
+the same island** — because `Koh Lipe` alone answers with four hamlets in Liberia and `Koh Kradan`
+alone answers with nothing at all, while `Ko Lipe` and `Ko Kradan` find them instantly, and `Koh Rong`
+is genuinely spelled that way in Cambodia. So neither spelling is chosen for you; both are asked, and
+the answers are merged. Picking a result **never renames your Stop** — you typed `Koh Mook` because
+that is what the ferry ticket says, and OSM's `Ko Muk` stays on the map's own labels where it belongs.
+Search stops the moment a Stop is placed, so renaming one can never move it. See
+[#18](../../issues/18).
 
 ## Running it
 

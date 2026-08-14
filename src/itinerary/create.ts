@@ -35,6 +35,8 @@ export function newStop(): Stop {
     name: '',
     // Placed on save, from a search or a pasted coordinate. Until then it cannot be drawn.
     coord: { lng: 0, lat: 0 },
+    // Only a Stop found by name ever learns how big it is; a pasted or clicked one never does.
+    footprint: null,
     arrival: null,
     departure: null,
     inbound: newLeg(),

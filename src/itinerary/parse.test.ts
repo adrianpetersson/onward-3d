@@ -117,6 +117,9 @@ describe('absence is defaulted, and the unknown is ignored', () => {
       id: 's1',
       name: 'Koh Mook',
       coord: { lng: 0, lat: 0 },
+      // Added by #18, and this test is the demonstration: every file written before it keeps loading,
+      // with no migration and no version bump.
+      footprint: null,
       arrival: null,
       departure: null,
       inbound: {
@@ -174,6 +177,63 @@ describe('absence is defaulted, and the unknown is ignored', () => {
     ).trips[0].stops
 
     expect(stop.inbound.mode).toBeNull()
+  })
+
+  it("reads back a Stop's Footprint, which cannot be recovered any other way", () => {
+    // Ko Muk's real extent. A Stop only ever learns this by being found by name, and re-running that
+    // search months later may not return the same record — so losing it on read loses it for good.
+    const [stop] = ok(
+      oneTrip({
+        stops: [
+          {
+            id: 's1',
+            footprint: {
+              west: 99.280672,
+              north: 7.390932,
+              east: 99.315247,
+              south: 7.352792,
+            },
+          },
+        ],
+      }),
+    ).trips[0].stops
+
+    expect(stop.footprint).toEqual({
+      west: 99.280672,
+      north: 7.390932,
+      east: 99.315247,
+      south: 7.352792,
+    })
+  })
+
+  it('drops a Footprint whose edges are the wrong way round', () => {
+    // Not transposed back into shape. It is an optional convenience everything already works without,
+    // so a suspect one is worth less than nothing — a silently corrected rectangle would frame a
+    // camera on the wrong side of the world and look deliberate doing it.
+    const [stop] = ok(
+      oneTrip({
+        stops: [
+          {
+            id: 's1',
+            footprint: { west: 99.4, north: 7.35, east: 99.2, south: 7.39 },
+          },
+        ],
+      }),
+    ).trips[0].stops
+
+    expect(stop.footprint).toBeNull()
+  })
+
+  it('drops a Footprint that is missing an edge', () => {
+    const [stop] = ok(
+      oneTrip({
+        stops: [
+          { id: 's1', footprint: { west: 99.2, north: 7.39, east: 99.4 } },
+        ],
+      }),
+    ).trips[0].stops
+
+    expect(stop.footprint).toBeNull()
   })
 })
 
@@ -365,6 +425,7 @@ describe('a real Itinerary survives the round trip', () => {
         id: 's-bkk',
         name: 'Bangkok',
         coord: { lng: 100.5018, lat: 13.7563 },
+        footprint: null,
         arrival: '2026-12-14',
         departure: '2026-12-16',
         inbound: {
@@ -407,6 +468,7 @@ describe('a real Itinerary survives the round trip', () => {
         id: 's-kradan',
         name: 'Koh Kradan',
         coord: { lng: 99.2555, lat: 7.3037 },
+        footprint: null,
         arrival: '2026-12-19',
         departure: '2026-12-22',
         inbound: {

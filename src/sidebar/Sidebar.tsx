@@ -21,8 +21,9 @@ import {
 } from '../itinerary/derive'
 import type { Trip } from '../itinerary/model'
 import { CoordField } from './CoordField'
-import { Field, Text, shortDate } from './fields'
+import { shortDate } from './fields'
 import { LegCard } from './LegCard'
+import { NameField } from './NameField'
 import { StopCard } from './StopCard'
 import { RETURN_LEG, useItinerary } from './use-itinerary'
 
@@ -247,6 +248,11 @@ function OriginRow({
   dispatch: React.Dispatch<import('./use-itinerary').Action>
 }) {
   const [open, setOpen] = useState(false)
+  // `{ lng: 0, lat: 0 }` is the not-yet-placed sentinel the whole app reads, so both halves are
+  // checked — the same test `StopCard` uses. This box and the coordinate box below must agree about
+  // whether home has been placed, or one would offer search while the other showed a coordinate.
+  const placed =
+    !!trip.origin && (trip.origin.lat !== 0 || trip.origin.lng !== 0)
 
   return (
     <div className="mb-1">
@@ -266,30 +272,53 @@ function OriginRow({
 
       {open && (
         <div className="mb-2 rounded-md border border-black/15 bg-white px-3 py-3">
-          <Field label="Home">
-            <Text
-              value={trip.origin?.name ?? null}
-              placeholder="Copenhagen"
-              onChange={(name) =>
-                dispatch({
-                  type: 'edit-trip',
-                  patch: {
-                    origin: name
+          <NameField
+            label="Home"
+            what="home"
+            value={trip.origin?.name ?? null}
+            placeholder="Copenhagen"
+            searchable={!placed}
+            onChange={(name) =>
+              dispatch({
+                type: 'edit-trip',
+                patch: {
+                  // Emptying the name must not delete the place. This used to collapse the whole
+                  // Origin to `null` the moment the box went blank — so a select-all-and-retype over
+                  // a home that had already been placed threw its coordinate away silently, and then
+                  // (because `placed` is derived from it) re-armed search over the empty field. An
+                  // Origin only becomes nothing when there is nothing left of it: no name *and* no
+                  // coordinate.
+                  origin:
+                    name || placed
                       ? {
-                          name,
+                          name: name ?? '',
                           lng: trip.origin?.lng ?? 0,
                           lat: trip.origin?.lat ?? 0,
                         }
                       : null,
+                },
+              })
+            }
+            // An Origin is a city, so it searches exactly like a Stop — but it does not keep the
+            // Footprint. A Footprint exists so the camera can frame a Stop it flies to, and the camera
+            // never flies home: the Origin is where the long-haul starts, not somewhere you arrive.
+            onFind={(find) =>
+              dispatch({
+                type: 'edit-trip',
+                patch: {
+                  origin: {
+                    name: trip.origin?.name ?? '',
+                    lng: find.coord.lng,
+                    lat: find.coord.lat,
                   },
-                })
-              }
-            />
-          </Field>
+                },
+              })
+            }
+          />
           <CoordField
             label="Where it is"
             what="home"
-            coord={trip.origin && trip.origin.lat !== 0 ? trip.origin : null}
+            coord={placed ? trip.origin : null}
             onPlace={(coord, name) =>
               dispatch({
                 type: 'edit-trip',

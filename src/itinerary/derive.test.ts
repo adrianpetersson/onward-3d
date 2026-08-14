@@ -49,6 +49,7 @@ function stop(
     id,
     name,
     coord: { lng: 100, lat: 8 },
+    footprint: null,
     arrival,
     departure,
     inbound,

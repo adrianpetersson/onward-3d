@@ -23,6 +23,7 @@
 import type {
   Booking,
   Coord,
+  Footprint,
   Leg,
   Mode,
   Money,
@@ -82,6 +83,31 @@ const readCoord = (value: unknown): Coord | null => {
   const lng = num(source.lng)
   const lat = num(source.lat)
   return lng === null || lat === null ? null : { lng, lat }
+}
+
+/**
+ * A Footprint survives only if all four edges are present, finite and the right way round.
+ *
+ * Repaired-by-transposition is deliberately not an option. It is an optional convenience that
+ * everything downstream must already work without, so a suspect one is worth less than nothing — a
+ * silently corrected rectangle would frame a camera on the wrong side of the world and look
+ * deliberate doing it.
+ */
+const readFootprint = (value: unknown): Footprint | null => {
+  const source = raw(value)
+  const west = num(source.west)
+  const north = num(source.north)
+  const east = num(source.east)
+  const south = num(source.south)
+
+  if (west === null || north === null || east === null || south === null) {
+    return null
+  }
+  if (west >= east || south >= north) return null
+  if (Math.abs(west) > 180 || Math.abs(east) > 180) return null
+  if (Math.abs(north) > 90 || Math.abs(south) > 90) return null
+
+  return { west, north, east, south }
 }
 
 /**
@@ -200,6 +226,7 @@ const readStop = (value: unknown, id: string): Stop => {
     id,
     name: str(source.name) ?? '',
     coord: readCoord(source.coord) ?? { lng: 0, lat: 0 },
+    footprint: readFootprint(source.footprint),
     arrival: str(source.arrival),
     departure: str(source.departure),
     inbound: readLeg(source.inbound),

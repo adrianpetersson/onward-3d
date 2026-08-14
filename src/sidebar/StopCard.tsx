@@ -5,6 +5,7 @@ import type { Dispatch } from 'react'
 import { markerAt, nightsAt, perNight } from '../itinerary/derive'
 import type { Stay, StayStatus, Stop } from '../itinerary/model'
 import { CoordField } from './CoordField'
+import { NameField } from './NameField'
 import {
   DateInput,
   Derived,
@@ -132,9 +133,20 @@ export function StopCard({
 
       {open && (
         <div className="border-t border-black/8 px-3 py-3">
-          <Field label="Name">
-            <Text value={stop.name} onChange={(v) => edit({ name: v ?? '' })} />
-          </Field>
+          <NameField
+            label="Name"
+            what="this stop"
+            value={stop.name}
+            placeholder="Koh Mook"
+            // Once it stands somewhere, this is a plain text field again: renaming a placed Stop must
+            // never be able to move it.
+            searchable={!placed}
+            onChange={(v) => edit({ name: v ?? '' })}
+            // The name stays exactly as typed. Only the position and the size are taken.
+            onFind={(find) =>
+              edit({ coord: find.coord, footprint: find.footprint })
+            }
+          />
 
           <div className="flex gap-2">
             <Field label="Arrival">
@@ -163,6 +175,10 @@ export function StopCard({
                 // A Stop's coordinate is not nullable — a Stop that cannot be drawn cannot exist —
                 // so unplaced is the origin of the world rather than `null`.
                 coord: coord ?? { lng: 0, lat: 0 },
+                // A pasted link and a click know where, never how big — and a Footprint left over
+                // from an earlier search describes a *different* place the moment the coordinate
+                // moves. Better none than one drawn around the wrong island.
+                footprint: null,
                 ...(name && !stop.name ? { name } : {}),
               })
             }

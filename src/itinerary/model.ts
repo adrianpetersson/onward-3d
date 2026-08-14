@@ -20,6 +20,24 @@ export type Mode = 'flight' | 'train' | 'ferry' | 'boat' | 'bus' | 'van'
 
 export type Coord = { lng: number; lat: number }
 
+/**
+ * How much ground a Stop covers — the rectangle it sits inside. Koh Kradan's is the island; Bangkok's
+ * is the city.
+ *
+ * Named edges rather than a tuple: it arrives from the geocoder as `[west, north, east, south]`,
+ * which is an ordering worth reading twice and never worth trusting to an index.
+ *
+ * Optional, and only ever known for a Stop the traveller *found by name* — a Stop placed by pasting a
+ * link or clicking the map has none, and there is no way to acquire one later. Whatever reads it must
+ * therefore work without it.
+ */
+export type Footprint = {
+  west: number
+  north: number
+  east: number
+  south: number
+}
+
 /** A named point that is not a Stop: a Trip's Origin, and a Leg's Vias. */
 export type Place = Coord & { name: string }
 
@@ -111,10 +129,25 @@ export type Leg = {
 export type Stop = {
   /** Position is order, so it cannot also be identity — Stops are dragged, swapped and renamed. */
   id: string
-  /** The traveller's phrasing, seeded from the geocoder and then owned by him. */
+  /**
+   * The traveller's phrasing, and **only** the traveller's.
+   *
+   * This once read "seeded from the geocoder and then owned by him", which
+   * [#18](https://github.com/adrianpetersson/onward/issues/18) made false: search now happens *in*
+   * this field, so the traveller types the name first and picking a result never rewrites it. He
+   * typed `Koh Mook` because that is what the ferry ticket says; OSM's `Ko Muk` is shown on the row he
+   * picked and on the map's own labels, and never here. The one thing that still seeds a name is a
+   * pasted Google Maps link, into an empty field only.
+   */
   name: string
   /** Always present. A Stop that cannot be drawn cannot exist. */
   coord: Coord
+  /**
+   * How big this Stop is, when it is known — see {@link Footprint}. Captured when a Stop is found by
+   * name, because it cannot be recovered afterwards: re-running the search months later may not
+   * return the same record. `null` for every Stop placed by paste or by click, which is most of them.
+   */
+  footprint: Footprint | null
   /** Date only. Every time of day on this trip belongs to a service, and therefore to a Leg. */
   arrival: string | null
   /** Date only, and **not** derivable from the next Stop's arrival — an overnight Leg puts a night between them. */

@@ -22,6 +22,14 @@ _Avoid_: destination, location, place, node, waypoint
 The place a Trip leaves from and returns to. It has a name and a coordinate but no dates and no Stay, and it is never a Stop — it exists so the long-haul out and the long-haul home are Legs like any other.
 _Avoid_: home, start, departure point, terminus
 
+**Find**:
+A place the search turned up, offered but not yet chosen — the one thing the sidebar shows that is not part of the Itinerary. Choosing a Find takes its position and its Footprint and leaves the traveller's own spelling alone: he typed the name on his ferry ticket, not the one in the map's index.
+_Avoid_: result, match, suggestion, hit, candidate
+
+**Footprint**:
+How much ground a Stop covers — Koh Kradan's is the island, Bangkok's is the city. It is what lets the map decide how far to pull back when it flies somewhere, instead of guessing. Known only for a Stop that was found by name; a Stop placed by paste or by click has none and can never acquire one, so nothing may depend on having it.
+_Avoid_: bounds, bbox, extent, envelope, area
+
 **Leg**:
 The movement into a Stop from the one before it — or from the Origin, for the first. Legs are derived from Stop order rather than entered directly, so an Itinerary can never be missing one. One booked movement is one Leg, however many vehicles it takes.
 _Avoid_: route, connection, transfer, hop, segment
