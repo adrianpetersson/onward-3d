@@ -7,6 +7,7 @@ import type {
 
 import { buildDioramaLight } from './diorama-light'
 import { getModelMatrix, type LngLatTuple } from './model-matrix'
+import type { ModelRole } from './models/model-assets'
 
 /**
  * A three.js scene drawn straight into MapLibre's own GL context, holding any number of models each
@@ -58,6 +59,19 @@ import { getModelMatrix, type LngLatTuple } from './model-matrix'
  * The way to go faster, if #8 ever needs to, is fewer passes — not cheaper ones.
  */
 
+/**
+ * What "how big does this model look" means for one asset: its largest real dimension, and the local
+ * axis that dimension lies on. An airliner's is its 60 m wingspan on `x`; a guesthouse's is its 8.9 m
+ * length on `z`.
+ *
+ * One number per model rather than a bounding box, because a size law needs something it can compare
+ * against a pixel count, and the largest extent is what the eye reads.
+ */
+export type ReadSpan = {
+  axis: 'x' | 'y' | 'z'
+  metres: number
+}
+
 export type Anchor = {
   id: string
   /** Where this anchor's local origin stands. */
@@ -70,14 +84,48 @@ export type Anchor = {
   altitudeM?: number
   /** Y-up, metres, standing on y = 0. */
   content: Object3D
+  /** Omit either of these and the anchor is drawn at true metre scale, whatever the law says. */
+  read?: ReadSpan
+  role?: ModelRole
 }
+
+/**
+ * Everything a size law is given about one anchor, in the frame it is about to be drawn in.
+ *
+ * `place` is the whole chain — it maps this anchor's local metres straight to clip space — which is
+ * what lets a law *measure* apparent size rather than estimate it from zoom. Handing it out is
+ * deliberate: the layer owns where a model is, and the law owns how big it looks.
+ */
+export type ScaleContext = {
+  place: Matrix4
+  /** The canvas in CSS pixels, so a law's target size means the same thing on a retina screen. */
+  viewport: { width: number; height: number }
+  zoom: number
+}
+
+/**
+ * A uniform multiplier on the anchor's local metres. 1 is true scale.
+ *
+ * **0 means do not draw this anchor at all** — the zoom is wrong for it, and something else stands
+ * there instead (a Pin, at zooms where a building is a speck; #9's). The pass is skipped rather than
+ * drawn at zero size, so a Stop that is out of range costs nothing.
+ */
+export type ScaleFor = (anchor: Anchor, ctx: ScaleContext) => number
 
 export type ModelLayer = CustomLayerInterface & {
   /** Replaces everything the layer draws. Safe to call before the layer is added to a map. */
   setAnchors: (anchors: readonly Anchor[]) => void
 }
 
-export function createModelLayer(id: string): ModelLayer {
+/**
+ * `scaleFor` is the single place the Diorama's size law is applied — #20's whole point. It is
+ * injected once, here, so #8's Vehicles and #9's Pins cannot each grow a multiplier of their own:
+ * they hand this layer an anchor and the law decides how big it draws.
+ */
+export function createModelLayer(
+  id: string,
+  { scaleFor }: { scaleFor?: ScaleFor } = {},
+): ModelLayer {
   let map: MapLibreMap | undefined
   let renderer: WebGLRenderer | undefined
 
@@ -130,12 +178,21 @@ export function createModelLayer(id: string): ModelLayer {
         gl.FRAMEBUFFER_BINDING,
       ) as WebGLFramebuffer | null
 
+      const canvas = map.getCanvas()
+      // CSS pixels, not the canvas buffer's device pixels: a law expressed in device pixels would
+      // draw everything half size on a retina screen.
+      const viewport = {
+        width: canvas.clientWidth,
+        height: canvas.clientHeight,
+      }
+      const zoom = map.getZoom()
+
       for (const anchor of anchors) {
         // Queried every frame rather than once on add: the DEM streams in, so an early answer is
         // null and a later one is the real hillside. Null means no terrain, which means sea level.
         const groundM = map.queryTerrainElevation(anchor.origin) ?? 0
 
-        camera.projectionMatrix = new Matrix4()
+        const place = new Matrix4()
           .fromArray(mainMatrix)
           .multiply(
             getModelMatrix(
@@ -144,6 +201,16 @@ export function createModelLayer(id: string): ModelLayer {
               projectionTransition,
             ),
           )
+
+        // Applied *after* the placement, so it scales the model about its own footprint and leaves
+        // its coordinate and its altitude exactly where they were.
+        const k = scaleFor?.(anchor, { place, viewport, zoom }) ?? 1
+
+        // The law's way of saying this model has no business being on screen at this zoom.
+        if (k <= 0) continue
+
+        camera.projectionMatrix =
+          k === 1 ? place : place.multiply(new Matrix4().makeScale(k, k, k))
 
         // Every anchor stands at the scene origin, so the only thing separating them is the matrix
         // above — which means exactly one may be in the scene per pass.

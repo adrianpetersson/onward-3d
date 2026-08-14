@@ -16,6 +16,13 @@ import {
 } from './map-config'
 import { createModelLayer, type Anchor } from './model-layer'
 import type { LngLatTuple } from './model-matrix'
+import { lawStore, scaleForLiveLaw } from './scale-law.prototype'
+import {
+  buildStandInAnchors,
+  readSpanOf,
+  VIEWS,
+  viewFromUrl,
+} from './stand-in-trip.prototype'
 import { buildStayMarker } from './stay-marker'
 
 /**
@@ -25,12 +32,15 @@ import { buildStayMarker } from './stay-marker'
  * one model and ten, and #8 and #9 will each need to ask again as Paths, Vehicles and Pins arrive —
  * so the way to ask is a URL parameter rather than an edit that gets reverted and cannot be repeated.
  * The Itinerary replaces all of this the moment there is one to draw.
+ *
+ * PROTOTYPE (#20): absent, the map now draws the whole stand-in trip instead of a single tracer —
+ * `?markers=N` still gives the ring, which is what the frame-rate numbers were taken on.
  */
-const markerCount = (): number => {
+const markerCount = (): number | undefined => {
   const asked = Number(
     new URLSearchParams(window.location.search).get('markers'),
   )
-  return Number.isFinite(asked) && asked > 0 ? Math.min(asked, 200) : 1
+  return Number.isFinite(asked) && asked > 0 ? Math.min(asked, 200) : undefined
 }
 
 /** A ring of tracer coordinates around Ao Niang, ~200 m out, so every marker is on screen at once. */
@@ -74,11 +84,24 @@ export function useDiorama(
     if (!element) return
 
     let live = true
+    let unsubscribe: (() => void) | undefined
+
+    // PROTOTYPE (#20): `?view=trip|region|island|street` opens on one of the four cameras the size
+    // law has to be judged at, so a screenshot is a URL rather than a hand-dragged approximation.
+    const asked = viewFromUrl()
+    const opening = asked
+      ? {
+          center: VIEWS[asked].centre,
+          zoom: VIEWS[asked].zoom,
+          pitch: VIEWS[asked].pitch,
+          bearing: VIEWS[asked].bearing,
+        }
+      : INITIAL_VIEW
 
     const map = new MapLibreMap({
       container: element,
       style: DIORAMA_STYLE,
-      ...INITIAL_VIEW,
+      ...opening,
       // three.js shares this context, and the model layer wants its edges smoothed.
       canvasContextAttributes: { antialias: true },
       attributionControl: {
@@ -118,17 +141,32 @@ export function useDiorama(
       // Added empty and filled in when the GLB lands. The alternative — waiting for the model
       // before adding the layer — leaves a window where the map is interactive and the layer is
       // not in the style, and #8's Paths would have to reproduce the same dance.
-      const models = createModelLayer('diorama-models')
+      //
+      // PROTOTYPE (#20): the size law is injected here, once, and every anchor the layer ever draws
+      // goes through it. Whichever law wins, this is the seam it lands on.
+      const models = createModelLayer('diorama-models', {
+        scaleFor: scaleForLiveLaw,
+      })
       map.addLayer(models)
 
-      const origins = tracerOrigins(markerCount())
+      // PROTOTYPE (#20): the layer only redraws when something asks it to, and switching law from
+      // the bar is exactly such a something.
+      unsubscribe = lawStore.subscribe(() => map.triggerRepaint())
 
-      void Promise.all(
-        origins.map(async (origin, i): Promise<Anchor> => ({
-          id: `tracer-${i}`,
-          origin,
-          content: await buildStayMarker(),
-        })),
+      const count = markerCount()
+
+      void (
+        count === undefined
+          ? buildStandInAnchors()
+          : Promise.all(
+              tracerOrigins(count).map(async (origin, i): Promise<Anchor> => ({
+                id: `tracer-${i}`,
+                origin,
+                content: await buildStayMarker(),
+                role: 'stay',
+                read: readSpanOf('stay_guesthouse'),
+              })),
+            )
       ).then((anchors) => {
         if (live) models.setAnchors(anchors)
       })
@@ -136,6 +174,7 @@ export function useDiorama(
 
     return () => {
       live = false
+      unsubscribe?.()
       onReady?.(null)
       map.remove()
     }

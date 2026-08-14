@@ -5,6 +5,7 @@ import { ConflictDialog, StorageLine } from './itinerary/StorageNotice'
 import { useStore } from './itinerary/use-store'
 import { Diorama } from './map/Diorama'
 import { PlacingProvider } from './map/placing'
+import { ScaleLawBar } from './map/ScaleLawBar.prototype'
 import { Sidebar } from './sidebar/Sidebar'
 
 export function App() {
@@ -44,6 +45,9 @@ export function App() {
       {store.conflict && (
         <ConflictDialog conflict={store.conflict} onSettle={store.settle} />
       )}
+
+      {/* PROTOTYPE (#20) — the size-law switcher. Dev only; it does not exist in a built bundle. */}
+      {import.meta.env.DEV && <ScaleLawBar map={map} />}
     </div>
   )
 }
