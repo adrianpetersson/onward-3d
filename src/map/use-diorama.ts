@@ -17,6 +17,7 @@ import {
 import { createModelLayer, type Anchor } from './model-layer'
 import type { LngLatTuple } from './model-matrix'
 import { readSpanOf, scaleForDiorama } from './model-scale'
+import { prototypeRequested } from './path-variants.prototype'
 import { buildStayMarker } from './stay-marker'
 
 /**
@@ -115,6 +116,16 @@ export function useDiorama(
       // Reads the source added on the line above, which is the only reason it is not in the style
       // JSON with the rest of the Diorama's look. See `HILLSHADE`.
       map.addLayer(HILLSHADE, HILLSHADE_BEFORE)
+
+      // PROTOTYPE for #8, and the only line of production code that knows it exists. With no
+      // `?variant=` in the URL nothing below is reached and the app behaves exactly as it does on
+      // `main`; with one, the tracer stands down and the stand-in Itinerary takes the map.
+      if (import.meta.env.DEV && prototypeRequested()) {
+        void import('./path-prototype').then(({ mountPathPrototype }) => {
+          if (live) mountPathPrototype(map)
+        })
+        return
+      }
 
       // Added empty and filled in when the GLB lands. The alternative — waiting for the model
       // before adding the layer — leaves a window where the map is interactive and the layer is
