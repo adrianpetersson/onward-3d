@@ -7,6 +7,7 @@ import type {
 
 import { buildDioramaLight } from './diorama-light'
 import { getModelMatrix, type LngLatTuple } from './model-matrix'
+import type { ModelRole } from './models/model-assets'
 
 /**
  * A three.js scene drawn straight into MapLibre's own GL context, holding any number of models each
@@ -58,6 +59,20 @@ import { getModelMatrix, type LngLatTuple } from './model-matrix'
  * The way to go faster, if #8 ever needs to, is fewer passes — not cheaper ones.
  */
 
+/**
+ * What "how big is this model" means for one asset: its largest real dimension, and the local axis
+ * that dimension lies on. An airliner's is its 60 m wingspan on `x`; the guesthouse's is its 8.9 m
+ * length on `z`.
+ *
+ * One number rather than a bounding box, because the size law needs something it can compare against
+ * a pixel count, and the largest extent is what the eye reads. `readSpanOf` in `model-scale.ts`
+ * derives it from the table #17 measured.
+ */
+export type ReadSpan = {
+  axis: 'x' | 'y' | 'z'
+  metres: number
+}
+
 export type Anchor = {
   id: string
   /** Where this anchor's local origin stands. */
@@ -70,14 +85,53 @@ export type Anchor = {
   altitudeM?: number
   /** Y-up, metres, standing on y = 0. */
   content: Object3D
+  /**
+   * How big the model really is, and which size law it answers to. Omit either and the anchor is
+   * drawn at true metre scale whatever the law says — which is the right default for anything that
+   * is not a Vehicle or a Stay Marker.
+   */
+  read?: ReadSpan
+  role?: ModelRole
 }
+
+/**
+ * Everything a size law is given about one anchor.
+ *
+ * Deliberately only the zoom. A law could be handed the anchor's whole placement matrix and measure
+ * its apparent size on screen exactly — #20 built that and rejected it: measuring per anchor makes
+ * every marker the same size regardless of distance, which flattens the depth cue the pitched map
+ * exists for, and it scales anything merely *in front of the camera* rather than actually worth
+ * drawing (a Stop 60 km up the coast came out a 5.5 km building, Bangkok an 84 km one). Keeping the
+ * context this narrow is what stops that law being written again by accident.
+ */
+export type ScaleContext = {
+  zoom: number
+}
+
+/**
+ * A uniform multiplier on the anchor's local metres. 1 is true scale.
+ *
+ * **0 means do not draw this anchor at all** — the zoom is wrong for it and something cheaper stands
+ * there instead (a Pin, where a building would be a speck; #9's). The pass is skipped rather than
+ * drawn at zero size, so a Stop out of range costs nothing.
+ */
+export type ScaleFor = (anchor: Anchor, ctx: ScaleContext) => number
 
 export type ModelLayer = CustomLayerInterface & {
   /** Replaces everything the layer draws. Safe to call before the layer is added to a map. */
   setAnchors: (anchors: readonly Anchor[]) => void
 }
 
-export function createModelLayer(id: string): ModelLayer {
+/**
+ * `scaleFor` is the one place the Diorama's size law is applied — see `model-scale.ts` for the law
+ * and #20 for why there is one. It is injected here, once, so #8's Vehicles and #9's Pins cannot
+ * each grow a multiplier of their own: they hand this layer an anchor, and the law decides how big
+ * it draws and whether it draws at all.
+ */
+export function createModelLayer(
+  id: string,
+  { scaleFor }: { scaleFor?: ScaleFor } = {},
+): ModelLayer {
   let map: MapLibreMap | undefined
   let renderer: WebGLRenderer | undefined
 
@@ -130,12 +184,19 @@ export function createModelLayer(id: string): ModelLayer {
         gl.FRAMEBUFFER_BINDING,
       ) as WebGLFramebuffer | null
 
+      const ctx = { zoom: map.getZoom() }
+
       for (const anchor of anchors) {
+        const k = scaleFor?.(anchor, ctx) ?? 1
+
+        // The law's way of saying this model has no business being on screen at this zoom.
+        if (k <= 0) continue
+
         // Queried every frame rather than once on add: the DEM streams in, so an early answer is
         // null and a later one is the real hillside. Null means no terrain, which means sea level.
         const groundM = map.queryTerrainElevation(anchor.origin) ?? 0
 
-        camera.projectionMatrix = new Matrix4()
+        const place = new Matrix4()
           .fromArray(mainMatrix)
           .multiply(
             getModelMatrix(
@@ -144,6 +205,11 @@ export function createModelLayer(id: string): ModelLayer {
               projectionTransition,
             ),
           )
+
+        // After the placement, so the model grows about its own footprint and its coordinate and
+        // altitude stay exactly where they were.
+        camera.projectionMatrix =
+          k === 1 ? place : place.multiply(new Matrix4().makeScale(k, k, k))
 
         // Every anchor stands at the scene origin, so the only thing separating them is the matrix
         // above — which means exactly one may be in the scene per pass.

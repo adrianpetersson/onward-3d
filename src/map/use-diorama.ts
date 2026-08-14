@@ -16,6 +16,7 @@ import {
 } from './map-config'
 import { createModelLayer, type Anchor } from './model-layer'
 import type { LngLatTuple } from './model-matrix'
+import { readSpanOf, scaleForDiorama } from './model-scale'
 import { buildStayMarker } from './stay-marker'
 
 /**
@@ -118,7 +119,12 @@ export function useDiorama(
       // Added empty and filled in when the GLB lands. The alternative — waiting for the model
       // before adding the layer — leaves a window where the map is interactive and the layer is
       // not in the style, and #8's Paths would have to reproduce the same dance.
-      const models = createModelLayer('diorama-models')
+      //
+      // The size law is injected here, once, and every anchor the layer ever draws goes through it
+      // (#20). #8 and #9 add anchors, not laws.
+      const models = createModelLayer('diorama-models', {
+        scaleFor: scaleForDiorama,
+      })
       map.addLayer(models)
 
       const origins = tracerOrigins(markerCount())
@@ -128,6 +134,11 @@ export function useDiorama(
           id: `tracer-${i}`,
           origin,
           content: await buildStayMarker(),
+          // Which makes the tracer answer to the Stay Marker's half of the law: true metres, and
+          // gone below z17. Zooming out until it disappears is the law working, not a bug — a Pin
+          // stands there once #9 lands.
+          role: 'stay',
+          read: readSpanOf('stay_guesthouse'),
         })),
       ).then((anchors) => {
         if (live) models.setAnchors(anchors)

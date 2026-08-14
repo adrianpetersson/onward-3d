@@ -41,9 +41,19 @@ where MapLibre itself projects the coordinate. See [#7](../../issues/7) and
 coordinate, not a Stay from your trip — nothing in the sidebar reaches the map yet. Paths and Vehicles
 are [#8](../../issues/8); Pins and the Stay Marker's real behaviour are [#9](../../issues/9).
 
-One thing the tracer settled that shapes both: at true metre scale an 8 m building is **5.9 px tall at
-z16 and 1.5 px at z14**, so a Stay Marker is invisible at any zoom that shows more than one Stop. Some
-form of zoom compensation is not optional — see [#11](../../issues/11).
+**And how big a model looks is settled.** The tracer left a problem behind: at true metre scale an 8.9 m
+building is **1.5 px at z14 and 0.006 px over Thailand**, so a Stay Marker is invisible at any zoom that
+frames more than one Stop. The answer is not one multiplier for everything —
+[#20](../../issues/20) measured that and it wrecks the map. **A Vehicle is exaggerated to a floor of
+40 px, because it is a symbol of a Mode; a Stay Marker never exaggerates at all and is simply not drawn
+until it covers 15 px, which for today's model is z17.** Below that, a Pin holds the Stop
+([#9](../../issues/9)). Zoom the deployed map out past z17 and the tracer vanishing is the law working.
+See [ADR 0005](./docs/adr/0005-a-vehicle-is-exaggerated-a-stay-marker-never-is.md),
+[`src/map/model-scale.ts`](./src/map/model-scale.ts) and [`docs/scale/`](./docs/scale/).
+
+The building itself is wrong, though — it is the one pre-assembled house in a CC0 kit, where a Stay
+wants a highrise. That is [#21](../../issues/21), and because #20's handover is a pixel count rather
+than a zoom level, a taller model appears earlier on its own.
 
 **And the trip now survives.** The Itinerary is saved to a **JSON file on your own disk** that you pick
 once — put it in Dropbox or iCloud and your existing backups cover the trip. That file is the source of
@@ -85,7 +95,9 @@ something has gone wrong — see [#3](../../issues/3) and [ADR 0002](./docs/adr/
   field earned its place. Its companion [`derive.ts`](./src/itinerary/derive.ts) is the only place a
   derived fact exists: if something can be computed, storing it is a bug.
 - **[src/map/model-layer.ts](./src/map/model-layer.ts)** — how a three.js model gets anchored to a
-  coordinate and drawn inside MapLibre's own GL context, and why one layer holds every model.
+  coordinate and drawn inside MapLibre's own GL context, and why one layer holds every model. Its
+  companion [`model-scale.ts`](./src/map/model-scale.ts) is the only place a model's size is decided:
+  one law, injected once, so nothing downstream can invent a multiplier of its own.
 - **[docs/adr/](./docs/adr/)** — the decisions that would otherwise look arbitrary later.
 - **The wayfinder map** — what's decided, what's still open, and what's deliberately out of scope.
 
