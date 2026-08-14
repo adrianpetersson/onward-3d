@@ -1,5 +1,7 @@
-import { useEffect, type RefObject } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 import { MapLibreMap, NavigationControl } from 'maplibre-gl'
+
+import type { Trip } from '../itinerary/model'
 
 // Side effect, and it has to happen before any map is constructed.
 import './worker'
@@ -14,6 +16,7 @@ import {
   TERRAIN_SOURCE,
   TERRAIN_SOURCE_ID,
 } from './map-config'
+import { drawItinerary, type Drawing } from './draw-itinerary'
 import { createModelLayer, type Anchor } from './model-layer'
 import type { LngLatTuple } from './model-matrix'
 import { readSpanOf, scaleForDiorama } from './model-scale'
@@ -27,10 +30,11 @@ import { buildStayMarker } from './stay-marker'
  * so the way to ask is a URL parameter rather than an edit that gets reverted and cannot be repeated.
  * The Itinerary replaces all of this the moment there is one to draw.
  */
-const markerCount = (): number => {
-  const asked = Number(
-    new URLSearchParams(window.location.search).get('markers'),
-  )
+const markerCount = (): number | null => {
+  const raw = new URLSearchParams(window.location.search).get('markers')
+  if (raw === null) return null
+
+  const asked = Number(raw)
   return Number.isFinite(asked) && asked > 0 ? Math.min(asked, 200) : 1
 }
 
@@ -62,6 +66,12 @@ const tracerOrigins = (count: number): LngLatTuple[] => {
 export function useDiorama(
   container: RefObject<HTMLDivElement | null>,
   /**
+   * The Itinerary to draw. A save commits a new Trip and the Diorama redraws from it — which is
+   * ruling 12, "save is explicit, and a save re-renders the map", arriving as a prop rather than as
+   * an event.
+   */
+  trip: Trip,
+  /**
    * Handed the map once it exists, so the sidebar can arm it for a click (`placing.tsx`). Called
    * with `null` on teardown — a stale instance is worse than none.
    *
@@ -70,6 +80,11 @@ export function useDiorama(
    */
   onReady?: (map: MapLibreMap | null) => void,
 ) {
+  const drawing = useRef<Drawing | undefined>(undefined)
+  // The style may still be loading when the first Trip arrives — and it always is, because the cache
+  // read is synchronous and the first render already holds the Itinerary (#12).
+  const latest = useRef(trip)
+
   useEffect(() => {
     const element = container.current
     if (!element) return
@@ -127,28 +142,42 @@ export function useDiorama(
       })
       map.addLayer(models)
 
-      const origins = tracerOrigins(markerCount())
+      // The tracer's ring of Stay Markers, kept only behind `?markers=` — it is a measurement
+      // affordance and #9 will need it again. With no parameter the map draws the real Itinerary,
+      // which is what #7 meant by "the Itinerary replaces all of this the moment there is one".
+      const asked = markerCount()
+      if (asked !== null) {
+        void Promise.all(
+          tracerOrigins(asked).map(async (origin, i): Promise<Anchor> => ({
+            id: `tracer-${i}`,
+            origin,
+            content: await buildStayMarker(),
+            role: 'stay',
+            read: readSpanOf('stay_guesthouse'),
+          })),
+        ).then((anchors) => {
+          if (live) models.setAnchors(anchors)
+        })
+        return
+      }
 
-      void Promise.all(
-        origins.map(async (origin, i): Promise<Anchor> => ({
-          id: `tracer-${i}`,
-          origin,
-          content: await buildStayMarker(),
-          // Which makes the tracer answer to the Stay Marker's half of the law: true metres, and
-          // gone below z17. Zooming out until it disappears is the law working, not a bug — a Pin
-          // stands there once #9 lands.
-          role: 'stay',
-          read: readSpanOf('stay_guesthouse'),
-        })),
-      ).then((anchors) => {
-        if (live) models.setAnchors(anchors)
-      })
+      drawing.current = drawItinerary(map, models)
+      drawing.current.redraw(latest.current)
     })
 
     return () => {
       live = false
+      drawing.current = undefined
       onReady?.(null)
       map.remove()
     }
   }, [container, onReady])
+
+  // Redraws on every committed Trip, and does **not** rebuild the map: the effect above owns the
+  // MapLibre instance and has an empty dependency list on purpose. A Trip that arrives before the
+  // style has loaded is held in `latest` and drawn by the `load` handler instead.
+  useEffect(() => {
+    latest.current = trip
+    drawing.current?.redraw(trip)
+  }, [trip])
 }

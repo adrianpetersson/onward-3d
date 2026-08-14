@@ -56,6 +56,30 @@ import { MODEL_ASSETS, type ModelAssetKey } from './models/model-assets'
 export const VEHICLE_MIN_PX = 40
 
 /**
+ * How many times its own drawn length a Vehicle needs its Path to be, or it is not drawn.
+ *
+ * The second half of the Vehicle's law, and #8 found it by looking for a different problem. The
+ * ticket asked how near-parallel Paths read, expecting the three speedboat Legs down the Andaman
+ * coast to be illegible on top of each other. **They are not** — the lines stay distinct at every
+ * camera. What is illegible is the *Vehicles*: held at a 40 px floor, six of them spread over ~180 px
+ * of coastline at region zoom are one grey smear, and the map underneath disappears
+ * (`docs/paths/vehicles-collide-at-region.png`).
+ *
+ * So the answer is #20's answer again, and it is worth noticing that it arrived twice from opposite
+ * directions: **the way out is less drawing, not more scaling.** A Stay Marker is not drawn until it
+ * is big enough to be a building; a Vehicle is not drawn until its Path has room for it. Shrinking
+ * the floor instead was the obvious alternative and it re-opens the size law #20 just closed, on top
+ * of making a Vehicle's size depend on its neighbours.
+ *
+ * 3 rather than a pixel constant, because the thing being asked is a *ratio* — "does this line have
+ * room for that model" — and a Vehicle's drawn length is itself zoom-dependent. On the real trip
+ * this hides the boat Legs below about z6.7 and keeps every flight from z0.1, which is the
+ * behaviour wanted: at the cameras that frame the whole island chain, the two or three Vehicles
+ * with room to stand are the ones left.
+ */
+export const VEHICLE_PATH_CLEARANCE = 3
+
+/**
  * How many CSS pixels a Stay Marker's own true size has to cover before it is drawn at all.
  *
  * 15 px, which the guesthouse crosses at z17.0 — the zoom picked by eye off the true-scale ladder as
@@ -113,14 +137,24 @@ export const scaleForDiorama: ScaleFor = (
   anchor: Anchor,
   { zoom }: ScaleContext,
 ): number => {
-  const { read, role } = anchor
+  const { pathM, read, role } = anchor
   if (!read || !role) return 1
 
-  const px = read.metres / metresPerPixel(anchor.origin[1], zoom)
+  const metresPerPx = metresPerPixel(anchor.origin[1], zoom)
+  const px = read.metres / metresPerPx
 
-  return role === 'vehicle'
-    ? Math.max(1, VEHICLE_MIN_PX / px)
-    : px >= STAY_MIN_PX
-      ? 1
-      : 0
+  if (role !== 'vehicle') return px >= STAY_MIN_PX ? 1 : 0
+
+  const k = Math.max(1, VEHICLE_MIN_PX / px)
+
+  // Measured against what the Vehicle will actually be drawn at, not against the floor: above the
+  // floor it is at true scale and bigger than 40 px, and the question is always whether the line has
+  // room for the model that is going on it.
+  if (
+    pathM !== undefined &&
+    pathM / metresPerPx < VEHICLE_PATH_CLEARANCE * px * k
+  )
+    return 0
+
+  return k
 }

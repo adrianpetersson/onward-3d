@@ -79,7 +79,10 @@ The stylised low-poly world the Itinerary is drawn into: matte terrain, flat col
 _Avoid_: scene, world, theme, style
 
 **Path**:
-The line drawn on the map for a Leg. A bird's path between two Stops, not a routed road or rail alignment.
+The line drawn on the map for a Leg. A bird's path between two Stops, not a routed road or rail
+alignment — and a bird's path is a **great circle**, so a Path curves on the map and is never the
+straight line between its ends. It lies on the ground: a Path has no height, not even a flight's
+([ADR 0006](docs/adr/0006-a-path-is-a-line-layer-never-three-js.md)).
 _Avoid_: arc, route, line, polyline, trail
 
 **Vehicle**:

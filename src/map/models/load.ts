@@ -31,6 +31,15 @@ const parse = (key: ModelAssetKey): Promise<Group> => {
     parsed.get(key) ??
     loader.loadAsync(modelUrl(key)).then((gltf) => gltf.scene)
   parsed.set(key, pending)
+
+  // A *rejection* must not be cached. The cache exists so ten Stay Markers are one parse; if a
+  // fetch fails once — a flaky network on first draw — keeping the rejected promise means every
+  // later redraw re-throws it and the model never comes back for the whole session. Evicting makes
+  // the next redraw the retry. Guarded on identity so a newer attempt is never dropped.
+  pending.catch(() => {
+    if (parsed.get(key) === pending) parsed.delete(key)
+  })
+
   return pending
 }
 

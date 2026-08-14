@@ -31,15 +31,26 @@ a distinction worth knowing about before you trust any implementation of this
 ([#13](../../issues/13)). Bare `lat, lng` works too, a paste it cannot read says so and says what to do
 instead, and clicking the map is always available underneath — including with no connection at all.
 
-**What also works: one real building, on a real beach.** The scaffold's orange triangle is gone. A
-CC0 low-poly guesthouse now stands at Ao Niang Resort on Koh Kradan at true metre scale — lit, casting
-a shadow, and cut off correctly by the hillside if you sink it into one. It lands within 0.001 px of
-where MapLibre itself projects the coordinate. See [#7](../../issues/7) and
-[`docs/tracer/`](./docs/tracer/).
+**And one real building stood on a real beach.** The scaffold's orange triangle went, and a CC0
+low-poly guesthouse stood at Ao Niang Resort on Koh Kradan at true metre scale — lit, casting a
+shadow, cut off correctly by the hillside if you sank it into one, and landing within 0.001 px of
+where MapLibre itself projects the coordinate. It was a tracer rather than a feature, and now that
+the map draws your actual trip it has stood down to `?markers=N`, where it stays as the thing to
+measure with. See [#7](../../issues/7) and [`docs/tracer/`](./docs/tracer/).
 
-**What doesn't: the Itinerary is still not drawn.** That building is a tracer at a hard-coded
-coordinate, not a Stay from your trip — nothing in the sidebar reaches the map yet. Paths and Vehicles
-are [#8](../../issues/8); Pins and the Stay Marker's real behaviour are [#9](../../issues/9).
+**And the trip is now on the map.** Save, and every Leg is drawn: a **Path** curving along the real
+great circle — Copenhagen to Bangkok arcs over the Kazakh steppe, 1,432 km from where a straight line
+on a flat map would put it — bending through any Via you gave it, inked and dashed by its Mode, with
+a toy **Vehicle** standing at the midpoint pointing the way it is going. A Leg you haven't told the
+Mode of yet is drawn too, in a muted dotted line, because the movement is real even when how you make
+it isn't decided.
+
+**No Path is lifted into the air, and that is a decision rather than an omission** — the only camera
+that frames a long-haul looks straight down, and there a flight arcing to an 864 km apex produces no
+bow at all: it just slides ~25 px off the line it should be on. See [#8](../../issues/8) and
+[ADR 0006](./docs/adr/0006-a-path-is-a-line-layer-never-three-js.md). Vehicles thin out as you pull
+back — one is drawn only where its Path has room for it — so the island-hop chain is three boats up
+close and none at all over the region, instead of six models in a smear.
 
 **And how big a model looks is settled.** The tracer left a problem behind: at true metre scale an 8.9 m
 building is **1.5 px at z14 and 0.006 px over Thailand**, so a Stay Marker is invisible at any zoom that
@@ -47,7 +58,8 @@ frames more than one Stop. The answer is not one multiplier for everything —
 [#20](../../issues/20) measured that and it wrecks the map. **A Vehicle is exaggerated to a floor of
 40 px, because it is a symbol of a Mode; a Stay Marker never exaggerates at all and is simply not drawn
 until it covers 15 px, which for today's model is z17.** Below that, a Pin holds the Stop
-([#9](../../issues/9)). Zoom the deployed map out past z17 and the tracer vanishing is the law working.
+([#9](../../issues/9)). Open the deployed map with `?markers=1` and zoom out past z17: the building
+vanishing is the law working, not a bug.
 See [ADR 0005](./docs/adr/0005-a-vehicle-is-exaggerated-a-stay-marker-never-is.md),
 [`src/map/model-scale.ts`](./src/map/model-scale.ts) and [`docs/scale/`](./docs/scale/).
 
@@ -72,6 +84,10 @@ the answers are merged. Picking a result **never renames your Stop** — you typ
 that is what the ferry ticket says, and OSM's `Ko Muk` stays on the map's own labels where it belongs.
 Search stops the moment a Stop is placed, so renaming one can never move it. See
 [#18](../../issues/18).
+
+**What doesn't: nothing stands at a Stop yet.** The Paths arrive and leave, but the place they meet
+is bare — the tracer building has stood down to `?markers=N`, and Pins and the Stay Marker's real
+behaviour are [#9](../../issues/9), which is the next thing to build.
 
 ## Running it
 
@@ -101,6 +117,8 @@ something has gone wrong — see [#3](../../issues/3) and [ADR 0002](./docs/adr/
 - **[src/itinerary/model.ts](./src/itinerary/model.ts)** — the shape of an Itinerary, with the reason each
   field earned its place. Its companion [`derive.ts`](./src/itinerary/derive.ts) is the only place a
   derived fact exists: if something can be computed, storing it is a bug.
+- **[src/map/path.ts](./src/map/path.ts)** — the line drawn for a Leg: great-circle geometry, the ink
+  and dash each Mode carries, and why none of it is three.js.
 - **[src/map/model-layer.ts](./src/map/model-layer.ts)** — how a three.js model gets anchored to a
   coordinate and drawn inside MapLibre's own GL context, and why one layer holds every model. Its
   companion [`model-scale.ts`](./src/map/model-scale.ts) is the only place a model's size is decided:

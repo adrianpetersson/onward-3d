@@ -181,3 +181,76 @@ describe('zoomWhereSpanReaches', () => {
     expect(zoomWhereSpanReaches(3, STAY_MIN_PX, 7.30365)).toBeCloseTo(18.6, 1)
   })
 })
+
+describe("a Vehicle's Path has to have room for it", () => {
+  /*
+   * #8's half of the Vehicle law. The numbers below are the real trip: the Andaman boat hops are
+   * 50–90 km, the Bangkok sleeper is ~700 km, and Copenhagen → Bangkok is 8,620 km. What the law has
+   * to do is thin them out as the camera pulls back — at region zoom six Vehicles spread over ~180 px
+   * of coastline is one smear — while never hiding the long-haul, which is the only Leg on screen at
+   * trip zoom.
+   */
+  const onPath = (lengthM: number): Anchor =>
+    anchor({ role: 'vehicle', read: readSpanOf('boat_speed'), pathM: lengthM })
+
+  const BOAT_M = 91_000
+  const SLEEPER_M = 700_000
+  const LONG_HAUL_M = 8_620_000
+
+  it('hides a boat hop at region zoom and draws it once the coast fills the screen', () => {
+    expect(scaleForDiorama(onPath(BOAT_M), { zoom: 5.6 })).toBe(0)
+    expect(scaleForDiorama(onPath(BOAT_M), { zoom: 8.2 })).toBeGreaterThan(0)
+  })
+
+  it('keeps the long-haul at every zoom the trip is ever seen at', () => {
+    for (const zoom of [1, 2.4, 5.6, 8.2, 13.2]) {
+      expect(scaleForDiorama(onPath(LONG_HAUL_M), { zoom })).toBeGreaterThan(0)
+    }
+  })
+
+  it('thins the trip out in order of Leg length, longest surviving furthest out', () => {
+    // At the camera that frames the whole region, the sleeper and the flight are drawn and the
+    // island hops are not — which is exactly the "two or three Vehicles with room to stand".
+    const zoom = 5.6
+
+    expect(scaleForDiorama(onPath(BOAT_M), { zoom })).toBe(0)
+    expect(scaleForDiorama(onPath(SLEEPER_M), { zoom })).toBeGreaterThan(0)
+    expect(scaleForDiorama(onPath(LONG_HAUL_M), { zoom })).toBeGreaterThan(0)
+  })
+
+  it('measures against the Vehicle as drawn, not against the 40 px floor', () => {
+    /*
+     * Below the floor a Vehicle is 40 px whatever it really is, so it asks for 120 px of Path. Above
+     * it the model is at true scale and bigger, and asks for three times *that* instead — 160 px of
+     * boat wants 480 px of Path. Pinning the floor as the ruler would let a boat 160 px long stand
+     * on a Path 130 px long, which is the smear this rule exists to stop.
+     *
+     * The Path lengths are derived from the zoom rather than written down, because what is being
+     * tested is the boundary: no real Leg is a few metres long.
+     */
+    const crossover = zoomWhereSpanReaches(
+      readSpanOf('boat_speed').metres,
+      VEHICLE_MIN_PX,
+      AO_NIANG[1],
+    )
+
+    const below = crossover - 2
+    const belowM = metresPerPixel(AO_NIANG[1], below)
+    expect(scaleForDiorama(onPath(119 * belowM), { zoom: below })).toBe(0)
+    expect(
+      scaleForDiorama(onPath(121 * belowM), { zoom: below }),
+    ).toBeGreaterThan(0)
+
+    const above = crossover + 2
+    const aboveM = metresPerPixel(AO_NIANG[1], above)
+    expect(scaleForDiorama(onPath(479 * aboveM), { zoom: above })).toBe(0)
+    expect(
+      scaleForDiorama(onPath(481 * aboveM), { zoom: above }),
+    ).toBeGreaterThan(0)
+  })
+
+  it('leaves an anchor with no Path alone', () => {
+    // Nothing but a Vehicle stands on a Path, and #9's Pins will not.
+    expect(scaleForDiorama(vehicle(), { zoom: 5.6 })).toBeGreaterThan(0)
+  })
+})

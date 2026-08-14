@@ -92,6 +92,13 @@ export type Anchor = {
    */
   read?: ReadSpan
   role?: ModelRole
+  /**
+   * For a Vehicle: the great-circle length of the Path it stands on, in metres.
+   *
+   * Handed to the size law rather than used by the layer — a Vehicle is hidden where its Path is too
+   * short to hold it (#8). Absent on anything that does not stand on a Path.
+   */
+  pathM?: number
 }
 
 /**
