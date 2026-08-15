@@ -167,6 +167,9 @@ export function useDiorama(
 
     return () => {
       live = false
+      // Before `map.remove()`: the Pulse and the Jump run on `requestAnimationFrame`, and a frame
+      // that lands after the map is gone calls `setPaintProperty` on a torn-down style.
+      drawing.current?.stop()
       drawing.current = undefined
       onReady?.(null)
       map.remove()

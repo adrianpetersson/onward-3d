@@ -121,9 +121,22 @@ export function drawingStay(stop: Stop): Stay | null {
 }
 
 export type Marker = {
-  /** A building stands wherever there is a Booking. A Pin stands where there is not. */
-  kind: 'pin' | 'stay-marker'
+  /**
+   * Where the Stop is marked: the bed's own coordinate when a Stay has one, and the Stop's centre
+   * when it does not.
+   *
+   * One coordinate, not two, and that is [#9](https://github.com/adrianpetersson/onward/issues/9)'s
+   * ruling rather than a convenience. A Stop's centre is what a geocoder returns for the *name* —
+   * Bangkok's is 6.6 km from a bed on Sukhumvit and Koh Kradan's is 780 m from the hut on Ao Niang —
+   * and the traveller never chose it. The bed is the place he actually goes, so it is what the map
+   * points at as soon as it knows it.
+   */
   coord: { lng: number; lat: number }
+  /**
+   * A Stay Marker stands here too, from the zoom its own true size earns (#20). False where nothing
+   * is booked, so there is no building to draw and the Pin is the whole marker at every zoom.
+   */
+  building: boolean
   /** Unresolved: nothing booked, or booked only to be replaced. */
   pulsing: boolean
   /** Unplaced: the Booking is real, but no coordinate has been pasted, so this is the Stop's centre. */
@@ -131,25 +144,38 @@ export type Marker = {
 }
 
 /**
- * What the map stands at a Stop.
+ * What the map stands at a Stop. **Always a Pin**, and sometimes a building underneath it.
  *
- * A booked bed is always a building, never a Pin — even before anyone has pasted a Google Maps link
- * for it. Without that coordinate the building stands at the Stop's own centre and **jumps**, which
- * asks for the one thing still missing instead of pretending nothing is settled. The two animations
- * are independent: a pulse means unresolved, a jump means unplaced, and a Placeholder with no
- * coordinate is honestly both.
+ * This used to return a `kind` — Pin *or* Stay Marker — and #9 found that the choice cannot be made,
+ * because the two are never on screen at the same time to choose between: a Stay Marker is not drawn
+ * below z17, and at z17 the viewport is 853 m wide, which is narrower than the gap between a Stop's
+ * centre and its own bed at most Stops on the real trip. An either/or therefore left every Stop
+ * unmarked at exactly the zoom the traveller was looking at it, and left the building — drawn at
+ * true metres, per #20 — indistinguishable from the OSM extrusions either side of it.
+ *
+ * So a Pin marks every Stop at every zoom, and `building` says whether one also rises beneath it.
+ * Both stand at the same coordinate, which is what dissolves the question.
+ *
+ * The two animations remain independent: a pulse means unresolved, a jump means unplaced, and a
+ * Placeholder nobody has pasted a link for is honestly both.
  */
 export function markerAt(stop: Stop): Marker {
   const stay = drawingStay(stop)
   const unresolved = !stop.stays.some((s) => s.status === 'booked')
 
+  // A Shortlisted Stay is a name and an intention: nothing is committed, so nothing is built.
   if (!stay || stay.status === 'shortlisted') {
-    return { kind: 'pin', coord: stop.coord, pulsing: true, jumping: false }
+    return {
+      coord: stop.coord,
+      building: false,
+      pulsing: true,
+      jumping: false,
+    }
   }
 
   return {
-    kind: 'stay-marker',
     coord: stay.coord ?? stop.coord,
+    building: true,
     pulsing: unresolved,
     jumping: stay.coord === null,
   }

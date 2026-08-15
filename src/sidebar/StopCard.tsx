@@ -36,17 +36,23 @@ const STATUSES: { value: StayStatus; label: string; hint: string }[] = [
   },
 ]
 
+/**
+ * The row's echo of what the map is standing at this Stop.
+ *
+ * A square where a building rises, a circle where the Pin is the whole marker — which is #9's shape
+ * rather than the old Pin-or-building one: every Stop has a Pin now, so the square means "and a
+ * building too" rather than "instead".
+ */
 function Marker({ stop }: { stop: Stop }) {
   const marker = markerAt(stop)
-  const shape =
-    marker.kind === 'stay-marker'
-      ? 'size-2.5 rounded-[2px] bg-emerald-600'
-      : 'size-2.5 rounded-full bg-amber-500'
+  const shape = marker.building
+    ? 'size-2.5 rounded-[2px] bg-emerald-600'
+    : 'size-2.5 rounded-full bg-amber-500'
 
   return (
     <span
       title={
-        marker.kind === 'stay-marker'
+        marker.building
           ? marker.jumping
             ? 'Booked, but not placed yet — paste a link and the building moves to its own beach'
             : 'Booked and placed'

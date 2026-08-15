@@ -41,22 +41,44 @@ export const meterInMercatorUnits = (lat: number) =>
  *
  * Note the negative X scale: the mercator frame is **mirrored**, so asymmetric geometry renders
  * back-to-front unless it compensates. Handedness and heading are #8's problem, not this file's.
+ *
+ * ## Height is measured at the map's centre, not at the model's own latitude
+ *
+ * `centreLat` is the awkward argument and it is not optional in spirit. Horizontal mercator units
+ * genuinely vary with latitude — a metre at 55° N is a larger fraction of the world than a metre at
+ * 3° N — so `x` and `y` scale by the **anchor's** latitude. The vertical does not follow, because
+ * MapLibre does not build the custom layer's matrix per anchor: `getProjectionDataForCustomLayer`
+ * scales Z by `worldSize / pixelsPerMeter` with `pixelsPerMeter = mercatorZfromAltitude(1,
+ * center.lat) * worldSize` — one factor for the whole frame, taken from where the camera is looking.
+ *
+ * Scaling height by the anchor's own latitude therefore draws it `cos(centreLat) / cos(ownLat)` too
+ * tall. It is invisible in the one case everything so far was measured in — the camera centred on
+ * the model, where the two latitudes are equal, which is exactly where #7 recorded its 0.001 px
+ * agreement — and it is over 50% wrong at one end of a Trip that spans 42° of latitude. #8 found it
+ * by reading `mercator_transform.ts` and left it for the first ticket that lifts anything off the
+ * ground; #9's `Jump` is that ticket.
  */
 export function getMercatorModelMatrix(
   [lng, lat]: LngLatTuple,
   altitudeM = 0,
+  centreLat = lat,
 ): Matrix4 {
   const scale = meterInMercatorUnits(lat)
+  // The vertical axis answers to the camera's latitude, per the note above.
+  const up = meterInMercatorUnits(centreLat)
 
-  return new Matrix4()
-    .makeTranslation(
-      mercatorXFromLng(lng),
-      mercatorYFromLat(lat),
-      altitudeM * scale,
-    )
-    .multiply(new Matrix4().makeRotationZ(Math.PI))
-    .multiply(new Matrix4().makeRotationX(Math.PI / 2))
-    .multiply(new Matrix4().makeScale(-scale, scale, scale))
+  return (
+    new Matrix4()
+      .makeTranslation(
+        mercatorXFromLng(lng),
+        mercatorYFromLat(lat),
+        altitudeM * up,
+      )
+      .multiply(new Matrix4().makeRotationZ(Math.PI))
+      .multiply(new Matrix4().makeRotationX(Math.PI / 2))
+      // Local +y is up, and it is the one component that does not use the anchor's own latitude.
+      .multiply(new Matrix4().makeScale(-scale, up, scale))
+  )
 }
 
 /**
@@ -94,8 +116,10 @@ export function getModelMatrix(
   location: LngLatTuple,
   altitudeM: number,
   projectionTransition: number,
+  /** The map centre's latitude, which only the mercator frame needs — see above. */
+  centreLat = location[1],
 ): Matrix4 {
   return projectionTransition > 0
     ? getGlobeModelMatrix(location, altitudeM)
-    : getMercatorModelMatrix(location, altitudeM)
+    : getMercatorModelMatrix(location, altitudeM, centreLat)
 }

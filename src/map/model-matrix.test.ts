@@ -30,7 +30,10 @@ const modelOrigin = (matrix: Matrix4) => new Vector3().applyMatrix4(matrix)
 const unitLength = (matrix: Matrix4, axis: Vector3) =>
   axis.clone().applyMatrix4(matrix).sub(modelOrigin(matrix)).length()
 
-const AXES = [new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1)]
+const EAST = new Vector3(1, 0, 0)
+const UP = new Vector3(0, 1, 0)
+const SOUTH = new Vector3(0, 0, 1)
+const AXES = [EAST, UP, SOUTH]
 
 describe('the earth MapLibre thinks it is drawing', () => {
   it('has the radius this module hard-codes', () => {
@@ -90,6 +93,111 @@ describe('getMercatorModelMatrix', () => {
     expect(aKilometreUp.z - atSeaLevel.z).toBeCloseTo(1000 * scale, 15)
     expect(aKilometreUp.x).toBeCloseTo(atSeaLevel.x, 15)
     expect(aKilometreUp.y).toBeCloseTo(atSeaLevel.y, 15)
+  })
+})
+
+describe('height answers to the map centre, not to the model (#8, #9)', () => {
+  /**
+   * The bug this pins is the one #8 read out of `mercator_transform.ts` and #9 had to fix before it
+   * could animate a Jump.
+   *
+   * MapLibre does not build the custom layer's matrix per anchor. `getProjectionDataForCustomLayer`
+   * scales the whole frame's Z by `worldSize / pixelsPerMeter`, and `pixelsPerMeter` is
+   * `mercatorZfromAltitude(1, center.lat) * worldSize` — one factor, taken from where the camera is
+   * looking. So a matrix that scales height by the *anchor's* latitude draws it
+   * `cos(centreLat) / cos(ownLat)` too tall.
+   *
+   * **`MercatorCoordinate.fromLngLat` is the wrong reference here**, which is the trap: it uses the
+   * point's own latitude for `z`, so it and this matrix agree exactly in the one case every earlier
+   * measurement was taken in — the camera centred on the model, which is where #7 recorded its
+   * 0.001 px — and disagree everywhere else.
+   */
+
+  const KRADAN_LAT = KOH_MOOK[1]
+
+  it('agrees with MercatorCoordinate when the camera is centred on the anchor', () => {
+    const centred = modelOrigin(
+      getMercatorModelMatrix(KOH_MOOK, 1000, KRADAN_LAT),
+    )
+    const maplibre = MercatorCoordinate.fromLngLat(
+      { lng: KOH_MOOK[0], lat: KOH_MOOK[1] },
+      1000,
+    )
+
+    expect(centred.z).toBeCloseTo(maplibre.z, 15)
+  })
+
+  /**
+   * What MapLibre's frame turns one model unit of height into, in real metres.
+   *
+   * This is the whole trap in one line: the frame multiplies the matrix's mercator Z by
+   * `circumferenceAtLatitude(centre.lat)`, so the *only* way to know what a model's height draws as
+   * is to apply the camera's latitude, not the model's.
+   */
+  const drawnMetresPerUnit = (matrix: Matrix4, centreLat: number) =>
+    unitLength(matrix, UP) *
+    2 *
+    Math.PI *
+    EARTH_RADIUS_M *
+    Math.cos((centreLat * Math.PI) / 180)
+
+  it('draws a metre as a metre from any camera', () => {
+    for (const centreLat of [KOH_MOOK[1], 0, COPENHAGEN[1], -41.3]) {
+      const matrix = getMercatorModelMatrix(KOH_MOOK, 0, centreLat)
+      expect(drawnMetresPerUnit(matrix, centreLat)).toBeCloseTo(1, 9)
+    }
+  })
+
+  it('is what the anchor-latitude version got wrong, and by how much', () => {
+    const ownLat = KOH_MOOK[1]
+    const centreLat = COPENHAGEN[1]
+
+    // The old matrix, reproduced by letting `centreLat` default to the anchor's own latitude.
+    const naive = getMercatorModelMatrix(KOH_MOOK, 0)
+    const wrongBy =
+      Math.cos((centreLat * Math.PI) / 180) / Math.cos((ownLat * Math.PI) / 180)
+
+    expect(drawnMetresPerUnit(naive, centreLat)).toBeCloseTo(wrongBy, 9)
+
+    // 0.569: an 8.9 m guesthouse on Koh Mook drew 5.1 m tall the moment the camera was over
+    // Copenhagen. It was invisible for as long as nothing was lifted and the camera stayed on the
+    // model — which is exactly where #7 measured its 0.001 px agreement.
+    expect(wrongBy).toBeCloseTo(0.5686, 4)
+  })
+
+  it('leaves the two horizontal axes on the anchor own latitude', () => {
+    const near = getMercatorModelMatrix(KOH_MOOK, 0, KOH_MOOK[1])
+    const far = getMercatorModelMatrix(KOH_MOOK, 0, COPENHAGEN[1])
+
+    // Horizontal mercator units genuinely do vary with the anchor's latitude — that part was never
+    // wrong, and moving it would break every Path and Vehicle already on the map.
+    for (const axis of [EAST, SOUTH]) {
+      expect(unitLength(far, axis)).toBeCloseTo(unitLength(near, axis), 15)
+    }
+  })
+
+  it('moves the altitude translation with it', () => {
+    const centreLat = COPENHAGEN[1]
+    const ground = modelOrigin(getMercatorModelMatrix(KOH_MOOK, 0, centreLat))
+    const lifted = modelOrigin(
+      getMercatorModelMatrix(KOH_MOOK, 1000, centreLat),
+    )
+
+    // A metre of altitude and a metre of geometry have to agree, or a model lifted 6 m by the Jump
+    // stops being 6 m of its own height off the ground.
+    expect(lifted.z - ground.z).toBeCloseTo(
+      1000 * unitLength(getMercatorModelMatrix(KOH_MOOK, 0, centreLat), UP),
+      15,
+    )
+  })
+
+  it('does not touch the globe frame, which has no such rescale', () => {
+    // `vertical_perspective_transform.ts` returns its projection data unscaled: the globe matrix
+    // works on the unit sphere, where a metre is 1/R everywhere and latitude does not enter.
+    const a = getModelMatrix(KOH_MOOK, 1000, 1, KOH_MOOK[1])
+    const b = getModelMatrix(KOH_MOOK, 1000, 1, COPENHAGEN[1])
+
+    expect(a.elements).toEqual(b.elements)
   })
 })
 

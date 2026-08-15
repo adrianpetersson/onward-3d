@@ -90,11 +90,19 @@ The 3D model that depicts a Leg's Mode on the map — a plane on a flight, a boa
 _Avoid_: model, mesh, icon, marker
 
 **Pin**:
-The marker standing at a Stop that has no Booking. A Pin is what stands there when nothing has been reserved yet — the moment a Stay is booked, a Stay Marker replaces it.
+The marker standing at a Stop — at **every** Stop, and at every zoom. It stands where the bed is
+when a Stay has a coordinate of its own, and at the Stop's own centre when it does not, because the
+centre is the geocoder's idea of the place and the bed is the traveller's. Nothing ever replaces a
+Pin: when a Stay Marker rises at close zoom it rises underneath one
+([#9](https://github.com/adrianpetersson/onward/issues/9)).
 _Avoid_: marker, dot, point
 
 **Stay Marker**:
-The 3D building that stands at a Stop once its Stay is booked. It stands at the Stay's own coordinates where they are known, and at the Stop's where they are not — a booked bed is always a building, never a Pin.
+The 3D building that stands at a Stop once its Stay is booked, at the Stay's own coordinates where
+they are known and at the Stop's where they are not. A booked bed is always a building **as well as**
+a Pin: the building is drawn only from the zoom at which its true size earns it
+([#20](https://github.com/adrianpetersson/onward/issues/20)), and at true scale it is one more
+building among the ones already on the street — so the Pin above it is what says which is yours.
 _Avoid_: hotel model, building, hotel pin
 
 **Pulse**:

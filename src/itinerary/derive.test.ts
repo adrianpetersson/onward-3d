@@ -233,17 +233,25 @@ describe('legs', () => {
 })
 
 describe('what the map stands at a Stop', () => {
-  it('stands a pulsing Pin where nothing is booked', () => {
+  it('marks every placed Stop, whatever is booked there', () => {
+    // #9's ruling, and the one worth pinning: there is no Stop the map leaves unmarked. The old
+    // shape returned a Pin *or* a building, which left a booked Stop with nothing on it at every
+    // zoom below z17 — which is most of them.
+    for (const stop of seaTrip().stops)
+      expect(markerAt(stop).coord).toBeTruthy()
+  })
+
+  it('stands a pulsing Pin and no building where nothing is booked', () => {
     expect(markerAt(seaTrip().stops[0])).toMatchObject({
-      kind: 'pin',
+      building: false,
       pulsing: true,
     })
   })
 
-  it('stands a pulsing Pin for a Stay that is only shortlisted', () => {
+  it('stands a pulsing Pin and no building for a Stay that is only shortlisted', () => {
     const langkawi = seaTrip().stops[5]
     expect(markerAt(langkawi)).toMatchObject({
-      kind: 'pin',
+      building: false,
       pulsing: true,
       jumping: false,
     })
@@ -256,30 +264,34 @@ describe('what the map stands at a Stop', () => {
     // Paid, confirmed, 1,605.86 SEK — settled, so it does not pulse. It jumps instead, because the
     // building is standing on the island's centre rather than on its own beach.
     expect(marker).toMatchObject({
-      kind: 'stay-marker',
+      building: true,
       pulsing: false,
       jumping: true,
     })
     expect(marker.coord).toEqual(kradan.coord)
   })
 
-  it('stands the building on the Stay when a link has been pasted', () => {
+  it('moves the Pin to the bed, not just the building, once a link has been pasted', () => {
     const kradan = seaTrip().stops[2]
     kradan.stays[0].coord = { lng: 99.2565, lat: 7.3086 }
 
     const marker = markerAt(kradan)
     expect(marker).toMatchObject({
-      kind: 'stay-marker',
+      building: true,
       pulsing: false,
       jumping: false,
     })
+
+    // One coordinate for both, which is the whole of #9's answer to the 2 km question: the Pin and
+    // the building it stands over can never be somewhere different, because there is only one.
     expect(marker.coord).toEqual({ lng: 99.2565, lat: 7.3086 })
+    expect(marker.coord).not.toEqual(kradan.coord)
   })
 
   it('stands a pulsing building on a Placeholder', () => {
     // A real Booking, so it earns a building — but one you mean to cancel, so it stays unresolved.
     expect(markerAt(seaTrip().stops[4])).toMatchObject({
-      kind: 'stay-marker',
+      building: true,
       pulsing: true,
       jumping: true,
     })
