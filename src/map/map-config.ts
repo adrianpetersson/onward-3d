@@ -17,10 +17,58 @@ import type { LngLatTuple } from './model-matrix'
  */
 
 /**
+ * The zooms the globe hands over to the pitched map across.
+ *
+ * Below `from` the world is a sphere; above `to` it is the pitched mercator Diorama; between them
+ * MapLibre morphs continuously. Ruling 2's "one map, zoom-driven" arriving as two numbers (#14).
+ *
+ * **4 → 7 rather than MapLibre's own 11 → 12**, because a globe at city zoom is the wrong picture:
+ * the pitched map is the product and the globe is the establishing shot for the whole Trip. By z7 the
+ * camera frames a region and the Diorama should already be flat and tilted.
+ */
+export const GLOBE_BAND = { from: 4, to: 7 } as const
+
+/**
+ * The zoom above which the globe **draws nothing at all**, measured in #14.
+ *
+ * Not a soft limit and not about quality: pinned to `vertical-perspective` and climbed, MapLibre
+ * renders 22 features at z16.0, 15 at z16.5 and **0 from z16.8 up** — no tiles, no coastline, no Pin,
+ * with a lone three.js model floating in a void (`docs/globe/globe-draws-nothing-at-z17.png`).
+ * Isolated from terrain: `setTerrain(null)` changes nothing and switching the same camera to
+ * mercator brings the map straight back.
+ *
+ * This is almost certainly why MapLibre's own default hands over at z11 → z12. It is recorded here
+ * because it is the one number that makes `GLOBE_BAND` unsafe to move upward, and a test pins the
+ * relationship rather than trusting a comment.
+ */
+export const GLOBE_CEILING_ZOOM = 16.8
+
+/**
  * The forked Positron style, stripped, with Liberty's `building-3d` extrusion lifted in. Lives in
  * the repo as source: see `style/README.md` for what was taken out.
+ *
+ * The projection is added here rather than in the JSON so the band can carry its reasoning, and it
+ * is on the **style** rather than a `setProjection` call because `setProjection` throws
+ * `Style is not done loading.` before the map's `load` — so calling it needs a handler and gets a
+ * frame of mercator first. A style property is read as the style is built and neither problem
+ * exists. See [ADR 0007](../../docs/adr/0007-the-globe-hands-over-before-it-runs-out.md).
  */
-export const DIORAMA_STYLE = dioramaStyle as StyleSpecification
+export const DIORAMA_STYLE = {
+  ...(dioramaStyle as StyleSpecification),
+  projection: {
+    type: [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      GLOBE_BAND.from,
+      'vertical-perspective',
+      GLOBE_BAND.to,
+      'mercator',
+    ],
+    // The spec's `projection.type` is a `projectionDefinition`, which accepts a string *or* a
+    // zoom expression. The generated `StyleSpecification` type only admits the string form.
+  } as unknown as StyleSpecification['projection'],
+} satisfies StyleSpecification
 
 export const TERRAIN_SOURCE_ID = 'terrain'
 

@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DIORAMA_STYLE,
+  GLOBE_BAND,
+  GLOBE_CEILING_ZOOM,
   ELEVATION_ATTRIBUTION,
   HILLSHADE,
+  INITIAL_VIEW,
   SEARCH_ATTRIBUTION,
   TERRAIN,
   TERRAIN_SOURCE,
@@ -112,5 +115,49 @@ describe('search credit', () => {
     expect(SEARCH_ATTRIBUTION).toContain(
       'https://www.openstreetmap.org/copyright',
     )
+  })
+})
+
+describe('the globe handover (#14)', () => {
+  const projection = DIORAMA_STYLE.projection as unknown as {
+    type: [string, unknown, unknown, number, string, number, string]
+  }
+
+  it('is a zoom expression, because a bare type never morphs', () => {
+    // `{ type: 'globe' }` works and hands over at z11 → z12 — MapLibre's own
+    // `createProjectionFromName` substitutes exactly that expression for the string. Spelling it out
+    // is what lets the band move; it is not a workaround for something missing.
+    expect(projection.type[0]).toBe('interpolate')
+    expect(projection.type[2]).toEqual(['zoom'])
+  })
+
+  it('goes from a sphere to the pitched map, in that order', () => {
+    expect(projection.type[3]).toBe(GLOBE_BAND.from)
+    expect(projection.type[4]).toBe('vertical-perspective')
+    expect(projection.type[5]).toBe(GLOBE_BAND.to)
+    expect(projection.type[6]).toBe('mercator')
+  })
+
+  it('hands over before the globe stops rendering', () => {
+    // The one relationship worth a test rather than a comment: above `GLOBE_CEILING_ZOOM` the globe
+    // draws no tiles whatsoever (#14), so a band that reached it would leave a blank map at the
+    // zooms in between. Raising the band without reading that measurement is the mistake this
+    // catches.
+    expect(GLOBE_BAND.from).toBeLessThan(GLOBE_BAND.to)
+    expect(GLOBE_BAND.to).toBeLessThan(GLOBE_CEILING_ZOOM)
+  })
+
+  it('is fully handed over before a Stay Marker can be drawn', () => {
+    // A Stay Marker crosses its 15 px floor at z17 (#20), which is above the ceiling — so the globe
+    // and the buildings are disjoint by construction and can never share a frame. That is what
+    // makes the model layer's hard switch on `projectionTransition` harmless.
+    expect(GLOBE_BAND.to).toBeLessThan(17)
+  })
+
+  it('opens the app on the pitched map, not on a globe', () => {
+    // INITIAL_VIEW is z17 (#7 put the camera on Ao Niang), which is above both the band and the
+    // ceiling — so the first frame anyone sees is the pitched Diorama, and the globe is somewhere
+    // you have to zoom out to.
+    expect(INITIAL_VIEW.zoom).toBeGreaterThan(GLOBE_BAND.to)
   })
 })
