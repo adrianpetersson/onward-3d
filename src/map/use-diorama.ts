@@ -20,6 +20,13 @@ import { drawItinerary, type Drawing } from './draw-itinerary'
 import { createModelLayer, type Anchor } from './model-layer'
 import type { LngLatTuple } from './model-matrix'
 import { readSpanOf, scaleForDiorama } from './model-scale'
+import {
+  installVariant,
+  prototypeVariant,
+  scaleForBeacons,
+  splitAnchors,
+} from './pin-variants.prototype'
+import { STAND_IN_TRIP } from './stand-in-trip.prototype'
 import { buildStayMarker } from './stay-marker'
 
 /**
@@ -137,8 +144,16 @@ export function useDiorama(
       //
       // The size law is injected here, once, and every anchor the layer ever draws goes through it
       // (#20). #8 and #9 add anchors, not laws.
+      // PROTOTYPE for #9: a beacon is neither a Vehicle nor a Stay Marker and the law on `main` has
+      // no rule for it, so variant B's third rule is wrapped around the real one here rather than
+      // grown into `model-scale.ts` before it has been chosen.
+      const variant = import.meta.env.DEV ? prototypeVariant() : null
+
       const models = createModelLayer('diorama-models', {
-        scaleFor: scaleForDiorama,
+        scaleFor: (anchor, ctx) =>
+          anchor.id.startsWith('beacon-')
+            ? scaleForBeacons(anchor, ctx.zoom)
+            : scaleForDiorama(anchor, ctx),
       })
       map.addLayer(models)
 
@@ -158,6 +173,27 @@ export function useDiorama(
         ).then((anchors) => {
           if (live) models.setAnchors(anchors)
         })
+        return
+      }
+
+      // PROTOTYPE for #9. The variants are judged against the real seam, so `drawItinerary` still
+      // draws the Paths and Vehicles and only the markers are the prototype's — the stand-in Trip
+      // replaces the traveller's so that every marker state is on screen at once.
+      if (variant) {
+        const split = splitAnchors(models)
+
+        drawing.current = drawItinerary(map, split.forItinerary)
+        drawing.current.redraw(STAND_IN_TRIP)
+
+        void installVariant(
+          variant,
+          map,
+          split.setPinAnchors,
+          STAND_IN_TRIP,
+        ).then((teardown) => {
+          if (!live) teardown()
+        })
+
         return
       }
 

@@ -4,6 +4,8 @@ import type { MapLibreMap } from 'maplibre-gl'
 import { ConflictDialog, StorageLine } from './itinerary/StorageNotice'
 import { useStore } from './itinerary/use-store'
 import { Diorama } from './map/Diorama'
+import { PinBar } from './map/PinBar.prototype'
+import { prototypeVariant } from './map/pin-variants.prototype'
 import { PlacingProvider } from './map/placing'
 import { Sidebar } from './sidebar/Sidebar'
 
@@ -16,6 +18,10 @@ export function App() {
   // `useDiorama` requires of it.
   const [map, setMap] = useState<MapLibreMap | null>(null)
 
+  // PROTOTYPE for #9. The sidebar overlays a third of the map (#10's ruling) and a marker is judged
+  // on the world, so in prototype mode the map gets the whole window — as #8's prototype did.
+  const prototype = import.meta.env.DEV && prototypeVariant() !== null
+
   return (
     <div className="relative size-full overflow-hidden">
       {/* The committed Trip, not the sidebar's draft: a Path appears when the save lands (ruling 12). */}
@@ -27,20 +33,25 @@ export function App() {
          * after a conflict — reaches the sidebar's draft. The draft lives in a reducer seeded from
          * this prop, which is exactly the state a re-render cannot reseed.
          */}
-        <Sidebar
-          key={store.generation}
-          trip={store.trip}
-          onSave={store.save}
-          storage={
-            <StorageLine
-              state={store.state}
-              cached={store.cached}
-              onRetry={store.retry}
-              onRelink={store.relink}
-            />
-          }
-        />
+        {!prototype && (
+          <Sidebar
+            key={store.generation}
+            trip={store.trip}
+            onSave={store.save}
+            storage={
+              <StorageLine
+                state={store.state}
+                cached={store.cached}
+                onRetry={store.retry}
+                onRelink={store.relink}
+              />
+            }
+          />
+        )}
       </PlacingProvider>
+
+      {/* PROTOTYPE for #9 — dev only, and only with `?variant=` in the URL. */}
+      {prototype && <PinBar />}
 
       {store.conflict && (
         <ConflictDialog conflict={store.conflict} onSettle={store.settle} />

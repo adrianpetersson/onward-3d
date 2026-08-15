@@ -24,3 +24,44 @@ body {
 .maplibregl-ctrl-bottom-left {
   margin-left: 436px;
 }
+
+/*
+ * PROTOTYPE for #9, variant C — the Name card. Plain CSS rather than Tailwind because MapLibre owns
+ * the element and puts it outside React's tree, so there is no JSX to hang classes off.
+ */
+.prototype-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  background: #fdfaf2;
+  color: #2f4f4f;
+  font:
+    500 12px/1.2 system-ui,
+    sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgb(47 79 79 / 35%);
+  transform: translateY(-10px);
+}
+
+.prototype-card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2f4f4f;
+}
+
+.prototype-card.is-pulsing .prototype-card-dot {
+  background: #d9694a;
+  animation: prototype-pulse 2.4s ease-out infinite;
+}
+
+@keyframes prototype-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(217 105 74 / 60%);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgb(217 105 74 / 0%);
+  }
+}

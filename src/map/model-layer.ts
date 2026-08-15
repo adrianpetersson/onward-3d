@@ -193,6 +193,11 @@ export function createModelLayer(
 
       const ctx = { zoom: map.getZoom() }
 
+      // Read once per frame, not once per anchor: MapLibre builds one custom-layer matrix for the
+      // whole frame and scales its vertical by this latitude, so every anchor answers to the same
+      // number. See `getMercatorModelMatrix`.
+      const centreLat = map.getCenter().lat
+
       for (const anchor of anchors) {
         const k = scaleFor?.(anchor, ctx) ?? 1
 
@@ -210,6 +215,7 @@ export function createModelLayer(
               anchor.origin,
               groundM + (anchor.altitudeM ?? 0),
               projectionTransition,
+              centreLat,
             ),
           )
 
