@@ -1,4 +1,4 @@
-import { Camera, Matrix4, Object3D, Scene, WebGLRenderer } from 'three'
+import { Camera, Matrix4, Object3D, Scene, Vector4, WebGLRenderer } from 'three'
 import type {
   CustomLayerInterface,
   CustomRenderMethodInput,
@@ -6,6 +6,7 @@ import type {
 } from 'maplibre-gl'
 
 import { buildDioramaLight } from './diorama-light'
+import { probeDrift } from './globe.prototype'
 import { getModelMatrix, type LngLatTuple } from './model-matrix'
 import type { ModelRole } from './models/model-assets'
 
@@ -201,8 +202,19 @@ export function createModelLayer(
       for (const anchor of anchors) {
         const k = scaleFor?.(anchor, ctx) ?? 1
 
-        // The law's way of saying this model has no business being on screen at this zoom.
-        if (k <= 0) continue
+        // PROTOTYPE for #14 — the reference anchor is measured even when the size law refuses to
+        // draw it, because the whole zoom range the handover happens over is a range where nothing
+        // is drawn: a Stay Marker is hidden below z17 and a Vehicle is hidden where its Path has no
+        // room. Without this the probe records nothing at exactly the zooms in question.
+        const probing =
+          import.meta.env.DEV &&
+          anchor === anchors[0] &&
+          !!window.__globeProbe?.recording
+
+        // The law's way of saying this model has no business being on screen at this zoom. The
+        // skip is what makes an out-of-range Stop free (#20), so the probe is the only thing
+        // allowed past it.
+        if (k <= 0 && !probing) continue
 
         // Queried every frame rather than once on add: the DEM streams in, so an early answer is
         // null and a later one is the real hillside. Null means no terrain, which means sea level.
@@ -218,6 +230,17 @@ export function createModelLayer(
               centreLat,
             ),
           )
+
+        if (probing) {
+          probeDrift(
+            map,
+            anchor.origin,
+            new Vector4(0, 0, 0, 1).applyMatrix4(place),
+            projectionTransition,
+          )
+        }
+
+        if (k <= 0) continue
 
         // After the placement, so the model grows about its own footprint and its coordinate and
         // altitude stay exactly where they were.

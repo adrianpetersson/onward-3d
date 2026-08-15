@@ -17,6 +17,11 @@ import {
   TERRAIN_SOURCE_ID,
 } from './map-config'
 import { drawItinerary, type Drawing } from './draw-itinerary'
+import {
+  globeRequested,
+  handoverProjection,
+  installProbe,
+} from './globe.prototype'
 import { createModelLayer, type Anchor } from './model-layer'
 import type { LngLatTuple } from './model-matrix'
 import { readSpanOf, scaleForDiorama } from './model-scale'
@@ -106,6 +111,16 @@ export function useDiorama(
 
     map.addControl(new NavigationControl({ visualizePitch: true }), 'top-right')
 
+    /*
+     * PROTOTYPE for #14. Set on the map rather than in the style JSON, so the handover range is a
+     * URL parameter — `?globe=4-7` morphs between z4 and z7, `?globe=on` is a globe at every zoom.
+     *
+     * The range has to be authored: `{ type: 'globe' }` alone is pinned at vertical-perspective
+     * forever in 6.3.0, because `ProjectionDefinition.parse('globe')` gives `from === to` and
+     * `transitionState` short-circuits to 1. There is no automatic zoom handover to inherit.
+     */
+    if (import.meta.env.DEV) installProbe()
+
     // The other half of `?markers=`: every number #7 recorded was taken by reaching the map and
     // the layer from the console, and #8 and #9 will have to take them again. Dev only — the
     // deployed bundle has no handle on it.
@@ -124,6 +139,14 @@ export function useDiorama(
     onReady?.(map)
 
     map.on('load', () => {
+      // Inside `load`, because `setProjection` throws "Style is not done loading." before it — the
+      // first thing this prototype learned, and a reason the app cannot simply set a projection
+      // where it sets its other camera options.
+      if (import.meta.env.DEV) {
+        const globe = globeRequested()
+        if (globe) map.setProjection(handoverProjection(globe))
+      }
+
       map.addSource(TERRAIN_SOURCE_ID, TERRAIN_SOURCE)
       map.setTerrain(TERRAIN)
 
