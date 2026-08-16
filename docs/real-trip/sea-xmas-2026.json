@@ -1,0 +1,393 @@
+{
+  "kind": "onward-store",
+  "schemaVersion": 1,
+  "savedAt": "2026-08-16T14:22:12.048Z",
+  "openTripId": "14717420-2620-4af4-96a2-2f09b3f358a4",
+  "trips": [
+    {
+      "id": "14717420-2620-4af4-96a2-2f09b3f358a4",
+      "name": "Southeast Asia",
+      "origin": {
+        "name": "Copenhagen",
+        "lng": 12.5700724,
+        "lat": 55.6867243
+      },
+      "stops": [
+        {
+          "id": "b1a225e5-ee86-471b-a6dc-9fead0d5196a",
+          "name": "Bangkok",
+          "coord": {
+            "lng": 100.4935089,
+            "lat": 13.7524938
+          },
+          "footprint": {
+            "west": 100.3278772,
+            "north": 13.9551693,
+            "east": 100.9386039,
+            "south": 13.2191019
+          },
+          "arrival": "2026-12-14",
+          "departure": "2026-12-15",
+          "inbound": {
+            "mode": "flight",
+            "secondMode": null,
+            "depart": "18:00",
+            "arrive": "18:05",
+            "dayRoll": 1,
+            "durationMin": 1085,
+            "price": null,
+            "carrier": "Air China",
+            "fromPlace": "Copenhagen T3",
+            "via": [],
+            "note": "Airside transit in Beijing, T3 → T3, 4h10. No visa needed under the 24h rule.",
+            "booking": {
+              "reference": "EEOIO2",
+              "platform": "Air China",
+              "cancelBy": null,
+              "contact": null,
+              "detail": "CA878 seat 52L · CA959 seat 46L · e-ticket 999-2425243001 · confirmation MH108R"
+            }
+          },
+          "stays": [
+            {
+              "name": "Sukhumvit — Asok / Phrom Phong",
+              "status": "shortlisted",
+              "coord": null,
+              "price": null,
+              "booking": null
+            }
+          ]
+        },
+        {
+          "id": "82e8ea4f-84b3-4139-b66e-597fee2266cb",
+          "name": "Ao Nang",
+          "coord": {
+            "lng": 98.8225499,
+            "lat": 8.0321024
+          },
+          "footprint": {
+            "west": 98.7716388,
+            "north": 8.0925206,
+            "east": 98.8567722,
+            "south": 8.001663
+          },
+          "arrival": "2026-12-16",
+          "departure": "2026-12-20",
+          "inbound": {
+            "mode": "train",
+            "secondMode": "van",
+            "depart": "19:50",
+            "arrive": "09:30",
+            "dayRoll": 1,
+            "durationMin": 820,
+            "price": {
+              "amount": 504,
+              "currency": "SEK"
+            },
+            "carrier": "A and T Travel via 12go",
+            "fromPlace": "Krung Thep Aphiwat",
+            "via": [],
+            "note": "Ask for a lower berth. Sleeper aircon runs cold — bring a warm layer. Delays of 1–2h are routine. Book in September.",
+            "booking": null
+          },
+          "stays": [
+            {
+              "name": "Ao Nang — walkable to the beach, A/C and a pool",
+              "status": "shortlisted",
+              "coord": null,
+              "price": null,
+              "booking": null
+            }
+          ]
+        },
+        {
+          "id": "94865034-0b5f-4e38-9e11-8d6c37316a44",
+          "name": "Koh Kradan",
+          "coord": {
+            "lng": 99.2526534,
+            "lat": 7.3157743
+          },
+          "footprint": {
+            "west": 99.2463934,
+            "north": 7.3334515,
+            "east": 99.2594744,
+            "south": 7.2981791
+          },
+          "arrival": "2026-12-20",
+          "departure": "2026-12-23",
+          "inbound": {
+            "mode": "boat",
+            "secondMode": null,
+            "depart": "10:10",
+            "arrive": "13:40",
+            "dayRoll": 0,
+            "durationMin": 210,
+            "price": {
+              "amount": 575,
+              "currency": "SEK"
+            },
+            "carrier": "Bundhaya",
+            "fromPlace": "Nopparat Thara",
+            "via": [],
+            "note": "Calls at Koh Ngai and Koh Mook on the way. Songthaew to Nopparat Thara ~5 min, ~30 THB.",
+            "booking": null
+          },
+          "stays": [
+            {
+              "name": "Ao Niang Beach Resort",
+              "status": "booked",
+              "coord": {
+                "lat": 7.3031889,
+                "lng": 99.2552559
+              },
+              "price": {
+                "amount": 1605.86,
+                "currency": "SEK"
+              },
+              "booking": {
+                "reference": "688166919",
+                "platform": "Agoda",
+                "cancelBy": "2026-12-13",
+                "contact": "+66 81 893 8008",
+                "detail": "Breakfast included · host Thidarat · the only resort on its own beach"
+              }
+            }
+          ]
+        },
+        {
+          "id": "6e00ea60-edda-414b-8277-6c1b8ecfbaae",
+          "name": "Koh Mook",
+          "coord": {
+            "lng": 99.2973031,
+            "lat": 7.3718307
+          },
+          "footprint": {
+            "west": 99.280672,
+            "north": 7.3909317,
+            "east": 99.3152471,
+            "south": 7.352792
+          },
+          "arrival": "2026-12-23",
+          "departure": "2026-12-26",
+          "inbound": {
+            "mode": "boat",
+            "secondMode": null,
+            "depart": null,
+            "arrive": null,
+            "dayRoll": 0,
+            "durationMin": 20,
+            "price": null,
+            "carrier": null,
+            "fromPlace": null,
+            "via": [],
+            "note": "Northbound. Confirm the day's sailing with the Ao Niang host.",
+            "booking": null
+          },
+          "stays": [
+            {
+              "name": "Charlie Beach (Farang Beach) — beachfront",
+              "status": "shortlisted",
+              "coord": null,
+              "price": null,
+              "booking": null
+            }
+          ]
+        },
+        {
+          "id": "45a4e868-f2e7-43f7-a037-9852d53c12f4",
+          "name": "Koh Lipe",
+          "coord": {
+            "lng": 99.3024656,
+            "lat": 6.4875909
+          },
+          "footprint": {
+            "west": 99.2838267,
+            "north": 6.4958154,
+            "east": 99.3111946,
+            "south": 6.4794166
+          },
+          "arrival": "2026-12-26",
+          "departure": "2026-12-29",
+          "inbound": {
+            "mode": "boat",
+            "secondMode": null,
+            "depart": null,
+            "arrive": null,
+            "dayRoll": 0,
+            "durationMin": 120,
+            "price": null,
+            "carrier": null,
+            "fromPlace": null,
+            "via": [],
+            "note": "Southbound corridor. Book on 12go a few days ahead.",
+            "booking": null
+          },
+          "stays": [
+            {
+              "name": "The Noi Guesthouse and Restaurant",
+              "status": "placeholder",
+              "coord": null,
+              "price": {
+                "amount": 2254,
+                "currency": "SEK"
+              },
+              "booking": {
+                "reference": "746681",
+                "platform": "Agoda",
+                "cancelBy": "2026-12-23",
+                "contact": null,
+                "detail": "Deluxe Double, all-in, A/C. Re-check in October and switch if something better appears."
+              }
+            }
+          ]
+        },
+        {
+          "id": "c3118a1a-bb7e-46ad-a695-0a039b5ddbe8",
+          "name": "Langkawi",
+          "coord": {
+            "lng": 99.7928634,
+            "lat": 6.3700386
+          },
+          "footprint": {
+            "west": 99.6404969,
+            "north": 6.4775881,
+            "east": 100.0579748,
+            "south": 6.0564825
+          },
+          "arrival": "2026-12-29",
+          "departure": "2027-01-01",
+          "inbound": {
+            "mode": "ferry",
+            "secondMode": null,
+            "depart": null,
+            "arrive": null,
+            "dayRoll": 0,
+            "durationMin": 90,
+            "price": {
+              "amount": 350,
+              "currency": "SEK"
+            },
+            "carrier": null,
+            "fromPlace": null,
+            "via": [],
+            "note": "Sea border. Immigration on the beach at Lipe, then at Telaga or Kuah. Two sailings daily in high season — book ahead over New Year.",
+            "booking": null
+          },
+          "stays": [
+            {
+              "name": "Telaga / Pantai Kok",
+              "status": "shortlisted",
+              "coord": null,
+              "price": null,
+              "booking": null
+            }
+          ]
+        },
+        {
+          "id": "0c4d14fb-e8c4-4680-9397-39c588b2480c",
+          "name": "George Town",
+          "coord": {
+            "lng": 100.3287352,
+            "lat": 5.4141619
+          },
+          "footprint": {
+            "west": 100.1749755,
+            "north": 5.4829097,
+            "east": 100.3466325,
+            "south": 5.2249977
+          },
+          "arrival": "2027-01-01",
+          "departure": "2027-01-04",
+          "inbound": {
+            "mode": "flight",
+            "secondMode": null,
+            "depart": null,
+            "arrive": null,
+            "dayRoll": 0,
+            "durationMin": 40,
+            "price": {
+              "amount": 500,
+              "currency": "SEK"
+            },
+            "carrier": null,
+            "fromPlace": null,
+            "via": [],
+            "note": "Thin route and 1 Jan is a public holiday — book early. There is no Langkawi–Penang ferry; it never resumed after the pandemic.",
+            "booking": null
+          },
+          "stays": [
+            {
+              "name": "George Town heritage core — Chulia / Armenian / Love Lane",
+              "status": "shortlisted",
+              "coord": null,
+              "price": null,
+              "booking": null
+            }
+          ]
+        },
+        {
+          "id": "a3114ddf-e75f-47ca-a342-f00461036f92",
+          "name": "Kuala Lumpur",
+          "coord": {
+            "lng": 101.6942371,
+            "lat": 3.1516964
+          },
+          "footprint": {
+            "west": 101.615139,
+            "north": 3.2445538,
+            "east": 101.7584948,
+            "south": 3.0333979
+          },
+          "arrival": "2027-01-04",
+          "departure": "2027-01-06",
+          "inbound": {
+            "mode": "train",
+            "secondMode": null,
+            "depart": null,
+            "arrive": null,
+            "dayRoll": 0,
+            "durationMin": 240,
+            "price": {
+              "amount": 79,
+              "currency": "MYR"
+            },
+            "carrier": "KTM ETS",
+            "fromPlace": "Butterworth",
+            "via": [],
+            "note": "Afternoon departure. KTMB opens sales ~6 months ahead in monthly blocks.",
+            "booking": null
+          },
+          "stays": [
+            {
+              "name": "Bukit Bintang",
+              "status": "shortlisted",
+              "coord": null,
+              "price": null,
+              "booking": null
+            }
+          ]
+        }
+      ],
+      "returnLeg": {
+        "mode": "flight",
+        "secondMode": null,
+        "depart": "10:15",
+        "arrive": "18:50",
+        "dayRoll": 0,
+        "durationMin": 935,
+        "price": null,
+        "carrier": "Emirates",
+        "fromPlace": "Kuala Lumpur T1",
+        "via": [],
+        "note": "Airside transit in Dubai, T3 → T3, 1h30. Check-in opens 06:15 at KUL — be at T1 by ~07:15.",
+        "booking": {
+          "reference": "MMMNEN",
+          "platform": "Emirates",
+          "cancelBy": null,
+          "contact": null,
+          "detail": "EK345 seat 27K · EK153 seat 26K · ticket 176 2214277226"
+        }
+      }
+    }
+  ]
+}
