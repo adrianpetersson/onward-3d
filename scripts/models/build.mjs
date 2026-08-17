@@ -684,10 +684,15 @@ await writeFile(
 // Scale is solved on **height** for every Kenney asset, and that is the load-bearing decision here.
 // Kenney's vehicles are faithful in cross-section and compressed in length — a double-deck carriage
 // is 2.5 units long on a 1.92-unit body, where a real one is 26 m long on a 3 m body. Solving for a
-// true 26 m length gives a carriage 20 m TALL, towering over an 8 m guesthouse and wrecking the
-// one-world read; solving for a true height leaves each piece stubby, which is the toy register the
-// Diorama already committed to. Train length comes from coupling the a/b/c segments, which is what
-// they are for. The airliner is the exception and is solved on wingspan.
+// true 26 m length gives a carriage 20 m TALL and 4.3x too fat, which is absurd on its own terms;
+// solving for a true height leaves each piece stubby, which is the toy register the Diorama already
+// committed to. Train length comes from coupling the a/b/c segments, which is what they are for. The
+// airliner is the exception and is solved on wingspan.
+//
+// #17 argued this as "towering over an 8 m guesthouse", and #21 retired that guesthouse for a 40 m
+// hotel tower — so a 20 m carriage would no longer tower over the Stay Marker at all. The conclusion
+// does not depend on it: a carriage inflated 4.3x in cross-section is wrong whatever it stands next
+// to. Stated without the comparison now, so the argument cannot rot again when the building changes.
 //
 // \`readsAtM\` / \`readsAtAxis\` record which size was solved for. A Vehicle crossing a continent will
 // want exaggerating well past life size to stay visible — multiply there (#8), and leave this table

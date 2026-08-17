@@ -55,7 +55,7 @@ const SHORT_NAMES = {
   'train-intercity-middle': 'ic-b',
   'train-intercity-tail': 'ic-c',
   van: 'van',
-  'stay-guesthouse': 'stay',
+  'stay-hotel': 'stay',
   airliner: 'plane',
 }
 

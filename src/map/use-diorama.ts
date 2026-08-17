@@ -153,7 +153,7 @@ export function useDiorama(
             origin,
             content: await buildStayMarker(),
             role: 'stay',
-            read: readSpanOf('stay_guesthouse'),
+            read: readSpanOf('stay_hotel'),
           })),
         ).then((anchors) => {
           if (live) models.setAnchors(anchors)

@@ -14,7 +14,7 @@ import train_intercity_noseUrl from './train-intercity-nose.glb?url'
 import train_intercity_middleUrl from './train-intercity-middle.glb?url'
 import train_intercity_tailUrl from './train-intercity-tail.glb?url'
 import vanUrl from './van.glb?url'
-import stay_guesthouseUrl from './stay-guesthouse.glb?url'
+import stay_hotelUrl from './stay-hotel.glb?url'
 import airlinerUrl from './airliner.glb?url'
 
 import { MODEL_ASSETS, type ModelAssetKey } from './model-assets'
@@ -31,7 +31,7 @@ export const MODEL_URLS: Record<ModelAssetKey, string> = {
   train_intercity_middle: train_intercity_middleUrl,
   train_intercity_tail: train_intercity_tailUrl,
   van: vanUrl,
-  stay_guesthouse: stay_guesthouseUrl,
+  stay_hotel: stay_hotelUrl,
   airliner: airlinerUrl,
 }
 

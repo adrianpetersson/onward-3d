@@ -45,11 +45,18 @@ export const SKY = {
 }
 
 /**
- * How far the sun's shadow camera reaches, in metres from the anchor. An 8 m guesthouse throws a
- * shadow a few metres long; 60 m is slack enough for a Stay Marker on a slope without spending the
- * shadow map's resolution on empty sand.
+ * How far the sun's shadow camera reaches, in metres from the anchor.
+ *
+ * Chosen when the Stay Marker was an 8 m guesthouse throwing a shadow a few metres long, where 60 m
+ * was pure slack. **#21's 40 m hotel tower spends most of that slack**: it throws its shadow ~31 m,
+ * so `stay-marker.ts` now sizes its catcher disc at ~44 m, and the widest thing this camera has to
+ * contain is that disc. 60 still covers it — the tower's own worst corner projects to 35 m
+ * perpendicular to the light — but the margin is 26% rather than the 5× it used to be. **A taller
+ * Stay Marker than this one has to raise this number**, and would otherwise lose the far end of its
+ * own shadow with nothing logged. Exported and pinned by test against the catcher's own radius, so
+ * that sentence is enforced rather than merely written down.
  */
-const SHADOW_EXTENT_M = 60
+export const SHADOW_EXTENT_M = 60
 
 /** One rig per scene. Lights are not draw calls, so a scene per layer costs nothing to light. */
 export function buildDioramaLight(): Group {

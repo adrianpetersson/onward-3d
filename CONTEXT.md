@@ -101,9 +101,16 @@ _Avoid_: marker, dot, point
 The 3D building that stands at a Stop once its Stay is booked, at the Stay's own coordinates where
 they are known and at the Stop's where they are not. A booked bed is always a building **as well as**
 a Pin: the building is drawn only from the zoom at which its true size earns it
-([#20](https://github.com/adrianpetersson/onward/issues/20)), and at true scale it is one more
-building among the ones already on the street — so the Pin above it is what says which is yours.
-_Avoid_: hotel model, building, hotel pin
+([#20](https://github.com/adrianpetersson/onward/issues/20)).
+
+It **signals** a booking rather than depicting one, and that is the whole of its meaning
+([#21](https://github.com/adrianpetersson/onward/issues/21),
+[ADR 0008](docs/adr/0008-the-stay-marker-signals-a-booking-it-does-not-depict-one.md)): every
+non-Shortlisted Stay stands the same 40 m hotel tower whether the real bed is a Sukhumvit condo or a
+hut on Koh Kradan. It is a highrise so that it can be found — read on its height it is drawn from
+z14.8 where the guesthouse it replaced needed z17 — and being taller than the OSM buildings around it
+is what stops it being one more building on the street.
+_Avoid_: hotel model, building, hotel pin. Never write as though it depicts the accommodation.
 
 **Pulse**:
 The slow throb that marks a Stop as unresolved — no Stay at all, a Shortlisted one, or a Placeholder meant to be replaced.

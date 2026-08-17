@@ -61,8 +61,9 @@ import type { ModelRole } from './models/model-assets'
 
 /**
  * What "how big is this model" means for one asset: its largest real dimension, and the local axis
- * that dimension lies on. An airliner's is its 60 m wingspan on `x`; the guesthouse's is its 8.9 m
- * length on `z`.
+ * that dimension lies on. An airliner's is its 60 m wingspan on `x`; the Stay Marker's is its 40 m
+ * height on `y`, which is why the hotel tower #21 shipped draws two zoom levels earlier than the
+ * guesthouse it replaced — that model's largest extent was its 8.9 m *footprint*, not its 8 m ridge.
  *
  * One number rather than a bounding box, because the size law needs something it can compare against
  * a pixel count, and the largest extent is what the eye reads. `readSpanOf` in `model-scale.ts`

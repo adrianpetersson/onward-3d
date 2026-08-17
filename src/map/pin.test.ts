@@ -14,7 +14,15 @@ import {
   pinLabelLayer,
   pulseAt,
 } from './pin'
-import { jumpAt, stayMarkersOf, JUMP_HEIGHT_M, JUMP_MS } from './stay-marker'
+import { SHADOW_EXTENT_M } from './diorama-light'
+import { MODEL_ASSETS } from './models/model-assets'
+import {
+  jumpAt,
+  stayMarkersOf,
+  shadowRadiusFor,
+  JUMP_HEIGHT_M,
+  JUMP_MS,
+} from './stay-marker'
 
 /**
  * The Pin, pinned by the things that would go wrong quietly.
@@ -107,9 +115,11 @@ describe('where a Pin stands', () => {
   })
 
   it('puts the Pin and the building it marks on exactly the same coordinate', () => {
-    // The whole of #9's answer to the 2 km question. These two are 780 m apart on the real island,
-    // and a Stay Marker is not drawn below z17, where the viewport is 853 m wide — so a Pin at the
-    // centre and a building on the beach are never both on screen to be reconciled by eye.
+    // The whole of #9's answer to the 2 km question. These two are 780 m apart on the real island.
+    // #9 reasoned from a Stay Marker not being drawn below z17, where the viewport is 853 m — but
+    // #21's tower draws from z14.8, where it is ~3.3 km and that gap WOULD fit on screen. The
+    // assertion survives anyway, because #9 removed the second coordinate rather than relying on it
+    // being invisible: there is one `coord`, so there is no pair left to reconcile at any zoom.
     const trip = tripOf(
       placedStop('Koh Kradan', centre.lng, centre.lat, [booked(bed)]),
     )
@@ -252,5 +262,38 @@ describe('which buildings hop', () => {
       placedStop('Railay', 98.838, 8.011, [booked({ lng: 98.84, lat: 8.01 })]),
     )
     expect(stayMarkersOf(trip)[0].jumping).toBe(false)
+  })
+})
+
+describe("the Stay Marker's shadow has somewhere to land", () => {
+  /*
+   * #21 swapped an 8 m guesthouse for a 40 m tower, and both of these numbers were hand-picked
+   * against the guesthouse. A shadow that runs off the end of its catcher, or out of the shadow
+   * camera, fails silently and looks like a rendering bug rather than a constant that needs raising —
+   * so the relationship between them is asserted rather than commented.
+   */
+
+  it('reaches the shadow of the far top corner, not just the footprint', () => {
+    // Derived from the sun's own direction: the tower throws ~31 m and stands on ~13 m of
+    // half-diagonal. Recompute if SUN.position moves.
+    expect(shadowRadiusFor(MODEL_ASSETS.stay_hotel.sizeM)).toBeCloseTo(44.3, 1)
+  })
+
+  it('validates against the radius #7 chose by eye for the old guesthouse', () => {
+    // sizeM was [4.41, 8, 8.88] and 14 m shipped. The formula wants 11.2, so #7's eye was
+    // generous rather than wrong — which is the check that the formula is measuring the right thing.
+    expect(shadowRadiusFor([4.41, 8, 8.88])).toBeCloseTo(11.2, 1)
+  })
+
+  it('fits inside the sun shadow camera, which is what stops the far end vanishing', () => {
+    expect(shadowRadiusFor(MODEL_ASSETS.stay_hotel.sizeM)).toBeLessThan(
+      SHADOW_EXTENT_M,
+    )
+  })
+
+  it('hops a quarter of its own height, so the Jump scales with the model', () => {
+    expect(JUMP_HEIGHT_M).toBeCloseTo(MODEL_ASSETS.stay_hotel.sizeM[1] / 4, 6)
+    // Never taller than the building doing it: that is a launch, not a hop.
+    expect(JUMP_HEIGHT_M).toBeLessThan(MODEL_ASSETS.stay_hotel.sizeM[1])
   })
 })

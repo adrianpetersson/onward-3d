@@ -23,10 +23,10 @@ named real-world livery or airframe, and none should be swapped for one that doe
 | train-intercity-middle | `train-intercity-middle.glb` | Kenney | CC0-1.0 | <https://kenney.nl/assets/train-kit>             | 137,292 |
 | train-intercity-tail   | `train-intercity-tail.glb`   | Kenney | CC0-1.0 | <https://kenney.nl/assets/train-kit>             | 115,392 |
 | van                    | `van.glb`                    | Kenney | CC0-1.0 | <https://kenney.nl/assets/car-kit>               | 185,640 |
-| stay-guesthouse        | `stay-guesthouse.glb`        | Kenney | CC0-1.0 | <https://kenney.nl/assets/modular-buildings>     | 40,996  |
+| stay-hotel             | `stay-hotel.glb`             | Kenney | CC0-1.0 | <https://kenney.nl/assets/modular-buildings>     | 42,468  |
 | airliner               | `airliner.glb`               | Savino | CC0-1.0 | <https://opengameart.org/content/funky-aircraft> | 51,020  |
 
-Shipped total: **1,255,400 bytes** (1.26 MB) across
+Shipped total: **1,256,872 bytes** (1.26 MB) across
 11 files, uncompressed — against 13.78 MB of archives that stay out of the repo. Both
 figures are SI, so they are comparable.
 
@@ -47,6 +47,8 @@ at all. Roughly 32 kB for a model that would otherwise have no shading.
 
 ## Deliberately not shipped
 
+- building-sample-tower-b/c/d as the Stay Marker — all three are CC0 and already in this kit, and #21 measured them side by side. The pixel law reads an asset's LONGEST axis, and for a tower that is its height, so at the 15 px threshold a tower is 15 px tall and h/foot px wide: tower-d (h/foot 3.42) arrives as a 4 px stick and tower-c (2.46) a 6 px one. tower-b (1.51) is chunkiest but at 40 m its footprint is 23 × 27 m, which reads as a block rather than a tower. tower-a (2.00) is the balance. Not shipped, because #17 already left three unreachable train GLBs in the bundle and once was enough
+- building-sample-house-a/b/c as the Stay Marker — house-b was the incumbent and is what #21 replaced. Kenney's pre-assembled houses are cream pitched-gable European suburbia: wrong for a Bangkok condo, wrong for a Thai beach bungalow, and only ever right for the guesthouse it happened to resemble
 - Kenney Retro Urban Kit — 22 discrete textures, breaks the one-atlas-per-kit convention
 - Kenney City Kit Suburban — North-American suburbia, wrong register for a Stay
 - Kenney Pirate Kit as a Stay — its structures are docks, not huts. Bookmarked for island dressing

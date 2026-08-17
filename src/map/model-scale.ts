@@ -46,10 +46,21 @@ import { MODEL_ASSETS, type ModelAssetKey } from './models/model-assets'
  *
  * `STAY_MIN_PX` is where the judgement lives, and it is expressed in pixels on purpose: the question
  * is "is this big enough to be a building yet", which is about apparent size. A zoom number would be
- * an answer for exactly one model height. Today's 8.9 m guesthouse crosses 15 px at **z17**, which is
- * the handover chosen from `docs/scale/stay-marker-true-scale-ladder.png` — at z16 it is a dark speck
- * among specks, at z17 it reads as a building. A 40 m highrise crosses the same threshold at z15 and
- * appears two zoom levels earlier, without this constant moving.
+ * an answer for exactly one model height. The 8.9 m guesthouse this was tuned against crossed 15 px
+ * at **z17**, the handover chosen from `docs/scale/stay-marker-true-scale-ladder.png` — at z16 it was
+ * a dark speck among specks, at z17 it read as a building.
+ *
+ * **#21 then spent that design as intended and this constant did not move.** Swapping the guesthouse
+ * for a 40 m hotel tower drops the threshold to **z14.8** — a booking announces itself two zoom
+ * levels earlier for the price of one line in `sources.json`, which is the entire reason the
+ * threshold is a pixel count. The prediction written here was z15; the measurement is z14.80 at
+ * Bangkok and z14.83 at Koh Kradan.
+ *
+ * One corollary #21 had to learn the hard way, because it inverts the obvious: `readSpanOf` reads an
+ * asset's **longest** axis, so at the threshold a model is 15 px along that axis and
+ * `15 ÷ slenderness` across. For the guesthouse the longest axis was its 8.9 m *footprint*, so it
+ * arrived 15 px wide and chunky. For a tower it is the height, so a **slender** tower arrives as a
+ * stick — Kenney's narrowest was 15 px tall and 4 px wide. Slenderness is a cost here, not a virtue.
  */
 
 /** The apparent size a Vehicle is held at, in CSS pixels, when true scale would be smaller. */
@@ -82,8 +93,10 @@ export const VEHICLE_PATH_CLEARANCE = 3
 /**
  * How many CSS pixels a Stay Marker's own true size has to cover before it is drawn at all.
  *
- * 15 px, which the guesthouse crosses at z17.0 — the zoom picked by eye off the true-scale ladder as
- * the first at which the model reads as a building rather than a speck.
+ * 15 px, picked by eye off the true-scale ladder as the first size at which a model reads as a
+ * building rather than a speck. Tuned against the 8.9 m guesthouse, which crossed it at z17.0; the
+ * 40 m hotel tower that replaced it crosses at z14.8, and this number was deliberately not retuned —
+ * the judgement is about apparent size, and it is the same judgement either way.
  */
 export const STAY_MIN_PX = 15
 

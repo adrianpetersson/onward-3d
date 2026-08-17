@@ -20,6 +20,14 @@
     "The converted airliner is the opposite case: faithful in plan, exaggerated in fin height, so it",
     "is solved on wingspan.",
     "",
+    "The Stay Marker is solved on height for a different reason, and #21 is where it matters. It is",
+    "not a portrait of anyone's hotel — it is the single building that says a bed is booked here — so",
+    "it is chosen to be SPOTTED. Reading it on its 40 m height rather than a footprint is what buys",
+    "that: the pixel law in src/map/model-scale.ts takes an asset's longest axis, so a tall building",
+    "crosses the drawing threshold at a lower zoom than a wide one of the same volume. The corollary",
+    "caught #21 out and is worth stating: a SLENDER tower is worse, not better, because at the",
+    "threshold it is 15 px tall and only 15/slenderness wide.",
+    "",
     "ORIENTATION. 'forward' is the direction the model's nose points in its own source axes, and it is",
     "DECLARED rather than inferred. Inference was tried first and is not trustworthy: the largest",
     "horizontal extent is the airliner's WINGSPAN, not its fuselage, and an outer-fifth taper test",
@@ -188,12 +196,12 @@
       "note": "No CC0 bus exists anywhere #4 checked, and a van is the truer depiction of a minibus hop regardless. The bonnet is the +z end: body height falls from 1.35 to 0.72 units. Reads at ~5.3 m long."
     },
     {
-      "id": "stay-guesthouse",
+      "id": "stay-hotel",
       "role": "stay",
       "kit": "modular-buildings",
-      "glb": "building-sample-house-b.glb",
-      "target": { "axis": "y", "metres": 8 },
-      "note": "Cream two-block guesthouse with pitched gable roofs, 374 tris — #4 described the kit as flat-roofed cubes, which is true of its modular pieces but not of this pre-assembled sample. Scaled by height because it stands rather than travels, so 8 m is the RIDGE: eaves land at 6.1 m and the footprint at ~4.4 × 8.9 m."
+      "glb": "building-sample-tower-a.glb",
+      "target": { "axis": "y", "metres": 40 },
+      "note": "The one building that means a bed is booked here — a 40 m hotel tower, 398 tris. It does NOT depict the accommodation: #21 ruled that every non-Shortlisted Stay stands the same building whether the real thing is a Sukhumvit condo or a beach hut, because the building's job is to be *spotted*, not to be accurate. Highrise for exactly that reason: read on its 40 m height it crosses #20's 15 px at z14.8 against the old guesthouse's z17, so a booking announces itself two zoom levels earlier with STAY_MIN_PX untouched. Scaled by height like every Kenney asset: 40 m to the parapet on a ~17.6 × 20.0 m footprint. Picked over towers b/c/d on slenderness — the pixel law reads the LONGEST axis, which for a tower is its height, so a slender tower arrives 15 px tall and only 4 px wide; tower-a's h/foot of 2.0 stays a block rather than a stick, and its window grid and entrance canopy read as a hotel."
     },
     {
       "id": "airliner",
@@ -207,6 +215,8 @@
   ],
 
   "notTaken": [
+    "building-sample-tower-b/c/d as the Stay Marker — all three are CC0 and already in this kit, and #21 measured them side by side. The pixel law reads an asset's LONGEST axis, and for a tower that is its height, so at the 15 px threshold a tower is 15 px tall and h/foot px wide: tower-d (h/foot 3.42) arrives as a 4 px stick and tower-c (2.46) a 6 px one. tower-b (1.51) is chunkiest but at 40 m its footprint is 23 × 27 m, which reads as a block rather than a tower. tower-a (2.00) is the balance. Not shipped, because #17 already left three unreachable train GLBs in the bundle and once was enough",
+    "building-sample-house-a/b/c as the Stay Marker — house-b was the incumbent and is what #21 replaced. Kenney's pre-assembled houses are cream pitched-gable European suburbia: wrong for a Bangkok condo, wrong for a Thai beach bungalow, and only ever right for the guesthouse it happened to resemble",
     "Kenney Retro Urban Kit — 22 discrete textures, breaks the one-atlas-per-kit convention",
     "Kenney City Kit Suburban — North-American suburbia, wrong register for a Stay",
     "Kenney Pirate Kit as a Stay — its structures are docks, not huts. Bookmarked for island dressing",

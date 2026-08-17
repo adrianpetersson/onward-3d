@@ -30,7 +30,7 @@ const anchor = (over: Partial<Anchor> = {}): Anchor => ({
 })
 
 const stay = (): Anchor =>
-  anchor({ role: 'stay', read: readSpanOf('stay_guesthouse') })
+  anchor({ role: 'stay', read: readSpanOf('stay_hotel') })
 
 const vehicle = (): Anchor =>
   anchor({ role: 'vehicle', read: readSpanOf('boat_speed') })
@@ -61,9 +61,11 @@ describe('metresPerPixel', () => {
 })
 
 describe('readSpanOf', () => {
-  it('reads the guesthouse on its length, not its ridge', () => {
-    // sizeM is [4.41, 8, 8.88] — width, height, length — so the largest extent is the length.
-    expect(readSpanOf('stay_guesthouse')).toEqual({ axis: 'z', metres: 8.88 })
+  it('reads the hotel tower on its height, which is what buys the early handover', () => {
+    // sizeM is [17.6, 40, 20] — width, height, length — so for a tower the largest extent is the
+    // HEIGHT, where the guesthouse it replaced was read on its 8.88 m footprint and only 8 m tall.
+    // That inversion is the whole of #21's gain: same STAY_MIN_PX, 2.2 zoom levels earlier.
+    expect(readSpanOf('stay_hotel')).toEqual({ axis: 'y', metres: 40 })
   })
 
   it('reads the airliner on its wingspan, which is neither its length nor its height', () => {
@@ -81,29 +83,40 @@ describe('readSpanOf', () => {
 
 describe('a Stay Marker', () => {
   it('is never exaggerated, at any zoom it is drawn at', () => {
-    for (const zoom of [17, 18, 19, 20, 22]) {
+    for (const zoom of [15, 16, 17, 18, 19, 20, 22]) {
       expect(scaleForDiorama(stay(), { zoom })).toBe(1)
     }
   })
 
-  it('appears at z17 and not before — the handover chosen off the ladder', () => {
-    expect(scaleForDiorama(stay(), { zoom: 16.9 })).toBe(0)
-    expect(scaleForDiorama(stay(), { zoom: 17.1 })).toBe(1)
+  it('appears at z14.8 and not before, because the model got taller and the rule did not', () => {
+    // z17 while the Stay Marker was an 8.9 m guesthouse; z14.83 at this latitude now. STAY_MIN_PX
+    // never moved — see model-scale.ts. Pinned tight so a silent model swap fails here first.
+    expect(scaleForDiorama(stay(), { zoom: 14.8 })).toBe(0)
+    expect(scaleForDiorama(stay(), { zoom: 14.9 })).toBe(1)
   })
 
   it('is not drawn at any zoom that frames more than one Stop', () => {
-    // Island zoom still shows two islands; region zoom shows the whole Andaman coast.
-    for (const zoom of [2.4, 5.6, 10, 13.2, 15, 16]) {
+    // Island zoom still shows two islands; region zoom shows the whole Andaman coast. z15 and z16
+    // used to be on this list and are not any more — the tower draws there. That is safe rather
+    // than lucky: at z15 the viewport is 2.8 km, and the closest two Stops on the real trip that
+    // both stand a building (Koh Kradan and Koh Lipe) are 92 km apart, so two Stay Markers still
+    // never share a frame.
+    for (const zoom of [2.4, 5.6, 10, 13.2, 14]) {
       expect(scaleForDiorama(stay(), { zoom })).toBe(0)
     }
   })
 
-  it('appears two zoom levels earlier if the model is a 40 m highrise', () => {
-    // The reason the threshold is stated in pixels: it follows the model rather than being re-picked.
-    const highrise = anchor({ role: 'stay', read: { axis: 'y', metres: 40 } })
+  it('would appear two zoom levels later again if the model went back to a guesthouse', () => {
+    // The reason the threshold is stated in pixels: it follows the model rather than being
+    // re-picked. #21 spent this in the tall direction; the guesthouse's own 8.88 m read is kept
+    // here as the counterfactual, so the mechanism stays pinned from both sides.
+    const guesthouse = anchor({
+      role: 'stay',
+      read: { axis: 'z', metres: 8.88 },
+    })
 
-    expect(scaleForDiorama(highrise, { zoom: 15.1 })).toBe(1)
-    expect(scaleForDiorama(highrise, { zoom: 14.8 })).toBe(0)
+    expect(scaleForDiorama(guesthouse, { zoom: 17.1 })).toBe(1)
+    expect(scaleForDiorama(guesthouse, { zoom: 16.9 })).toBe(0)
   })
 })
 
@@ -164,20 +177,24 @@ describe('anything that is neither', () => {
 })
 
 describe('zoomWhereSpanReaches', () => {
-  it('agrees with the law about where the guesthouse hands over', () => {
+  it('agrees with the law about where the hotel tower hands over', () => {
     const at = zoomWhereSpanReaches(
-      readSpanOf('stay_guesthouse').metres,
+      readSpanOf('stay_hotel').metres,
       STAY_MIN_PX,
       7.30365,
     )
 
-    expect(at).toBeCloseTo(17, 1)
+    expect(at).toBeCloseTo(14.8, 1)
     expect(scaleForDiorama(stay(), { zoom: at + 0.01 })).toBe(1)
     expect(scaleForDiorama(stay(), { zoom: at - 0.01 })).toBe(0)
   })
 
-  it('puts a 40 m highrise two levels earlier and a 3 m beach hut two later', () => {
+  it('spans the whole range a Stay Marker could be, from the shipped tower to a beach hut', () => {
+    // 40 m is what ships (#21); 8.88 m was the guesthouse; 3 m is the truthful Koh Kradan bungalow
+    // the ruling deliberately does NOT draw, because the building signals a booking rather than
+    // depicting it. Nearly four zoom levels separate the two ends.
     expect(zoomWhereSpanReaches(40, STAY_MIN_PX, 7.30365)).toBeCloseTo(14.8, 1)
+    expect(zoomWhereSpanReaches(8.88, STAY_MIN_PX, 7.30365)).toBeCloseTo(17, 1)
     expect(zoomWhereSpanReaches(3, STAY_MIN_PX, 7.30365)).toBeCloseTo(18.6, 1)
   })
 })

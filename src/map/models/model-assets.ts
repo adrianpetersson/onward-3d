@@ -11,10 +11,15 @@
 // Scale is solved on **height** for every Kenney asset, and that is the load-bearing decision here.
 // Kenney's vehicles are faithful in cross-section and compressed in length — a double-deck carriage
 // is 2.5 units long on a 1.92-unit body, where a real one is 26 m long on a 3 m body. Solving for a
-// true 26 m length gives a carriage 20 m TALL, towering over an 8 m guesthouse and wrecking the
-// one-world read; solving for a true height leaves each piece stubby, which is the toy register the
-// Diorama already committed to. Train length comes from coupling the a/b/c segments, which is what
-// they are for. The airliner is the exception and is solved on wingspan.
+// true 26 m length gives a carriage 20 m TALL and 4.3x too fat, which is absurd on its own terms;
+// solving for a true height leaves each piece stubby, which is the toy register the Diorama already
+// committed to. Train length comes from coupling the a/b/c segments, which is what they are for. The
+// airliner is the exception and is solved on wingspan.
+//
+// #17 argued this as "towering over an 8 m guesthouse", and #21 retired that guesthouse for a 40 m
+// hotel tower — so a 20 m carriage would no longer tower over the Stay Marker at all. The conclusion
+// does not depend on it: a carriage inflated 4.3x in cross-section is wrong whatever it stands next
+// to. Stated without the comparison now, so the argument cannot rot again when the building changes.
 //
 // `readsAtM` / `readsAtAxis` record which size was solved for. A Vehicle crossing a continent will
 // want exaggerating well past life size to stay visible — multiply there (#8), and leave this table
@@ -268,21 +273,21 @@ export const MODEL_ASSETS = {
     source: 'https://kenney.nl/assets/car-kit',
   },
   /**
-   * Cream two-block guesthouse with pitched gable roofs, 374 tris — #4 described the kit as flat-roofed cubes, which is true of its modular pieces but not of this pre-assembled sample. Scaled by height because it stands rather than travels, so 8 m is the RIDGE: eaves land at 6.1 m and the footprint at ~4.4 × 8.9 m.
+   * The one building that means a bed is booked here — a 40 m hotel tower, 398 tris. It does NOT depict the accommodation: #21 ruled that every non-Shortlisted Stay stands the same building whether the real thing is a Sukhumvit condo or a beach hut, because the building's job is to be *spotted*, not to be accurate. Highrise for exactly that reason: read on its 40 m height it crosses #20's 15 px at z14.8 against the old guesthouse's z17, so a booking announces itself two zoom levels earlier with STAY_MIN_PX untouched. Scaled by height like every Kenney asset: 40 m to the parapet on a ~17.6 × 20.0 m footprint. Picked over towers b/c/d on slenderness — the pixel law reads the LONGEST axis, which for a tower is its height, so a slender tower arrives 15 px tall and only 4 px wide; tower-a's h/foot of 2.0 stays a block rather than a stick, and its window grid and entrance canopy read as a hotel.
    *
-   * Solved on Y at 8 m, which puts it at 8.88 m long, 4.41 m wide, 8 m tall.
-   * 374 tris · 40.0 kB · source box 1.091 × 1.981 × 2.2 units.
+   * Solved on Y at 40 m, which puts it at 20 m long, 17.6 m wide, 40 m tall.
+   * 398 tris · 41.5 kB · source box 1.1 × 2.5 × 1.25 units.
    */
-  stay_guesthouse: {
-    id: 'stay-guesthouse',
-    file: 'stay-guesthouse.glb',
+  stay_hotel: {
+    id: 'stay-hotel',
+    file: 'stay-hotel.glb',
     role: 'stay',
-    scale: 4.037855,
+    scale: 16,
     yOffset: 0,
     yaw: 0,
-    readsAtM: 8,
+    readsAtM: 40,
     readsAtAxis: 'y',
-    sizeM: [4.41, 8, 8.88],
+    sizeM: [17.6, 40, 20],
     licence: 'CC0-1.0',
     author: 'Kenney',
     source: 'https://kenney.nl/assets/modular-buildings',

@@ -178,6 +178,12 @@ export const AO_NIANG: LngLatTuple = [99.25546, 7.30365]
  * z17 rather than the scaffold's z14: an 8 m building is roughly two pixels tall at z14, so the
  * tracer opens where a Stay Marker is actually legible. What that says about the zoom range a
  * true-metre model reads at is #7's to record and #8's to live with.
+ *
+ * **#21's 40 m tower makes z17 a choice rather than a floor.** The Stay Marker is now legible from
+ * z14.8, so the map could open wider and still show a building; z17 is kept because it opens on the
+ * one Stay that stands at real booked coordinates, and at z17 that tower is ~68 px of unmistakable
+ * hotel rather than a 15 px sliver. Opening wider is now available and is a taste call nobody has
+ * made.
  */
 export const INITIAL_VIEW = {
   center: AO_NIANG,

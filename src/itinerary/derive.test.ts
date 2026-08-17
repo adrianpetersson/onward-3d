@@ -237,7 +237,8 @@ describe('what the map stands at a Stop', () => {
   it('marks every placed Stop, whatever is booked there', () => {
     // #9's ruling, and the one worth pinning: there is no Stop the map leaves unmarked. The old
     // shape returned a Pin *or* a building, which left a booked Stop with nothing on it at every
-    // zoom below z17 — which is most of them.
+    // zoom below the building's own floor — z17 when #9 ruled, z14.8 since #21, and still most of
+    // the range either way.
     for (const stop of seaTrip().stops)
       expect(markerAt(stop).coord).toBeTruthy()
   })

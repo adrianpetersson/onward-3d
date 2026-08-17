@@ -173,7 +173,7 @@ export type Marker = {
  * What the map stands at a Stop. **Always a Pin**, and sometimes a building underneath it.
  *
  * This used to return a `kind` — Pin *or* Stay Marker — and #9 found that the choice cannot be made,
- * because the two are never on screen at the same time to choose between: a Stay Marker is not drawn
+ * because the two are never on screen at the same time to choose between: a Stay Marker was not drawn
  * below z17, and at z17 the viewport is 853 m wide, which is narrower than the gap between a Stop's
  * centre and its own bed at most Stops on the real trip. An either/or therefore left every Stop
  * unmarked at exactly the zoom the traveller was looking at it, and left the building — drawn at
@@ -181,6 +181,13 @@ export type Marker = {
  *
  * So a Pin marks every Stop at every zoom, and `building` says whether one also rises beneath it.
  * Both stand at the same coordinate, which is what dissolves the question.
+ *
+ * **#21 weakened that argument and cannot reach the conclusion.** The Stay Marker is now a 40 m tower
+ * drawn from **z14.8**, where the viewport is ~3.3 km — wider than Koh Kradan's 780 m gap and George
+ * Town's 1.1 km, so those gaps *would* now fit on screen where #9 measured that they could not (only
+ * Bangkok's 6.6 km still would not). What saves the ruling is that #9 did not merely observe the gap
+ * was invisible, it **removed the second coordinate**: there is one `coord` here, so there is no gap
+ * left to become visible. The reasoning is weaker; the outcome is untouched.
  *
  * The two animations remain independent: a pulse means unresolved, a jump means unplaced, and a
  * Placeholder nobody has pasted a link for is honestly both.
