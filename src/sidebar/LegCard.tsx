@@ -12,7 +12,10 @@
 import { useState } from 'react'
 import type { Dispatch } from 'react'
 
-import type { Leg, Mode } from '../itinerary/model'
+import type { Loss, StaleLeg } from '../itinerary/derive'
+import { lossOfBooking, today } from '../itinerary/derive'
+import type { Leg, Money, Mode } from '../itinerary/model'
+import { LossPanel, useRemoving } from './Removing'
 import { DateInput, Field, MoneyInput, Text, money } from './fields'
 import { hoursAndMinutes, offersDayRoll, serviceSummary } from './leg-fields'
 import type { Action, LegTarget } from './use-itinerary'
@@ -28,6 +31,23 @@ export const MODE_GLYPH: Record<Mode, string> = {
   van: '🚐',
 }
 
+/**
+ * What a reorder did to this Leg, in one sentence that is true of every Leg it can be shown on.
+ *
+ * Two earlier attempts were not. "These times, this fare and this carrier were entered for the way in
+ * from X" names three fields that most flagged Legs on the real trip do not have — the boat into Koh
+ * Lipe holds a Mode and nothing else. And "X no longer comes before it" is false after a one-place
+ * drag: X is usually still earlier in the trip, still visible in the same list, just no longer the Stop
+ * immediately before. So the sentence states the pair of ends, which is exactly what changed.
+ */
+function staleSentence(stale: StaleLeg): string {
+  const was = stale.wasFrom ?? 'somewhere else'
+
+  return stale.nowFrom
+    ? `Entered as the way in from ${was}. It now arrives from ${stale.nowFrom}.`
+    : `Entered as the way in from ${was}. What it arrives from has changed.`
+}
+
 export function LegCard({
   leg,
   target,
@@ -35,6 +55,7 @@ export function LegCard({
   open,
   onToggle,
   dirty,
+  stale,
   dispatch,
 }: {
   leg: Leg
@@ -44,6 +65,12 @@ export function LegCard({
   open: boolean
   onToggle: () => void
   dirty: boolean
+  /**
+   * Set when a reorder has re-pointed this Leg since the last Save, carrying the name of what it used
+   * to run from. A report and nothing more — the order the traveller dragged still wins and still
+   * draws, exactly as `orderConflicts` treats a date that disagrees with it.
+   */
+  stale?: StaleLeg | null
   dispatch: Dispatch<Action>
 }) {
   const edit = (patch: Partial<Leg>) =>
@@ -84,6 +111,14 @@ export function LegCard({
           )}
           {dirty && <span className="ml-1.5 text-amber-600">•</span>}
         </span>
+        {stale && (
+          <span
+            title={staleSentence(stale)}
+            className="shrink-0 text-[11px] text-amber-600"
+          >
+            ⚠
+          </span>
+        )}
         {leg.mode && !leg.booking && (
           <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] tracking-wide text-amber-800 uppercase">
             to book
@@ -93,6 +128,17 @@ export function LegCard({
 
       {open && (
         <div className="mb-2 rounded-md border border-black/15 bg-white px-3 py-3">
+          {/*
+           * Nothing is cleared and nothing is offered to clear. The times may be wrong, but the fare
+           * and the note may be exactly right, and only the traveller knows which — so this says what
+           * changed under the Leg and leaves the editing to the fields below it.
+           */}
+          {stale && (
+            <p className="mb-2.5 rounded border border-amber-700/25 bg-amber-50/70 px-2 py-1.5 text-[10.5px] leading-snug text-amber-900">
+              {staleSentence(stale)} Nothing below has been changed.
+            </p>
+          )}
+
           {/*
            * One row, glyphs only, each naming itself on hover. Six labelled buttons wrapped to two
            * rows, which is a lot of card spent saying what "clicking one icon" already implies — and
@@ -208,6 +254,9 @@ export function LegCard({
             booking={leg.booking}
             onChange={(booking) => edit({ booking })}
             what="this ticket"
+            kind="leg"
+            name={leg.mode}
+            price={leg.price}
           />
         </div>
       )}
@@ -316,11 +365,24 @@ export function BookingFields({
   booking,
   onChange,
   what,
+  kind,
+  name,
+  price,
 }: {
   booking: Leg['booking']
   onChange: (booking: Leg['booking']) => void
   what: string
+  /** Which side of the model this Booking sits on — a Stay's, or a Leg's. */
+  kind: Loss['kind']
+  /** The Stay's name, or the Leg's Mode. Names the Booking in the guard. */
+  name: string | null
+  /** The money committed. It lives on the Stay or Leg, never on the Booking itself. */
+  price: Money | null
 }) {
+  const loss = lossOfBooking(kind, name, booking, price, today())
+  const losses = loss ? [loss] : []
+  const removing = useRemoving(losses)
+
   if (!booking) {
     return (
       <button
@@ -343,6 +405,8 @@ export function BookingFields({
   const edit = (patch: Partial<NonNullable<Leg['booking']>>) =>
     onChange({ ...booking, ...patch })
 
+  const forget = () => onChange(null)
+
   return (
     <div className="mt-2 border-t border-black/8 pt-2">
       <div className="mb-1 flex items-baseline justify-between">
@@ -350,12 +414,22 @@ export function BookingFields({
           Booking
         </span>
         <button
-          onClick={() => onChange(null)}
+          onClick={() => removing.attempt(forget)}
           className="text-[10px] text-black/35 hover:text-red-700"
         >
           not booked after all
         </button>
       </div>
+
+      {removing.confirming && (
+        <LossPanel
+          heading="This erases the booking. The row stays; the reference does not."
+          losses={losses}
+          confirmLabel="Erase it anyway"
+          onRemove={forget}
+          onDismiss={removing.dismiss}
+        />
+      )}
 
       <div className="flex gap-2">
         <Field label="Reference">

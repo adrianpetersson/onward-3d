@@ -5,9 +5,13 @@ import {
   dateFloor,
   drawingStay,
   legsOf,
+  lossOfBooking,
+  lossesOfStay,
+  lossesOfStop,
   markerAt,
   nightsAt,
   orderConflicts,
+  staleLegs,
   tripEnd,
   tripNights,
   tripStart,
@@ -449,5 +453,257 @@ describe('money at risk', () => {
   it('leaves a refundable Stay out while its deadline is still ahead', () => {
     const risk = atRisk(seaTrip(), '2026-12-01')
     expect(risk).toEqual({ SEK: 4072, MYR: 2000 })
+  })
+})
+
+describe('what a removal takes with it', () => {
+  it('takes nothing from a Stop that has committed nothing', () => {
+    // Koh Mook: a boat in with no ticket, and nowhere booked to sleep. Five of the real trip's eight
+    // Stops are this shape, which is why the guard has to be silent here or it trains you to dismiss it.
+    expect(lossesOfStop(seaTrip().stops[3], '2026-08-17')).toEqual([])
+  })
+
+  it('reads a live cancellation window as the errand it is', () => {
+    const [loss] = lossesOfStop(seaTrip().stops[2], '2026-08-17')
+
+    expect(loss).toEqual({
+      kind: 'stay',
+      name: 'Ao Niang Beach Resort',
+      reference: '688166919',
+      platform: 'Agoda',
+      cancelBy: '2026-12-13',
+      price: { amount: 1605.86, currency: 'SEK' },
+      deadline: 'live',
+    })
+  })
+
+  it('turns the window over on the day after the deadline, not on it', () => {
+    const on = (today: string) =>
+      lossesOfStop(seaTrip().stops[2], today)[0].deadline
+
+    expect(on('2026-12-12')).toBe('live')
+    // The 13th is still a free day — the same boundary `atRisk` is pinned to, read from the other side.
+    expect(on('2026-12-13')).toBe('live')
+    expect(on('2026-12-14')).toBe('passed')
+  })
+
+  it('takes the flight out of Copenhagen with the first Stop', () => {
+    // The cascade nobody expects: a Leg is stored on the Stop it arrives at, so removing Bangkok
+    // removes Air China EEOIO2 — and its money sits on the Leg, not on the Booking.
+    const losses = lossesOfStop(seaTrip().stops[0], '2026-08-17')
+
+    expect(losses).toEqual([
+      {
+        kind: 'leg',
+        name: 'flight',
+        reference: 'EEOIO2',
+        platform: 'Air China',
+        cancelBy: null,
+        price: { amount: 4072, currency: 'SEK' },
+        deadline: 'none',
+      },
+    ])
+  })
+
+  it('lists the Stays it holds before the way into it', () => {
+    const trip = seaTrip()
+    trip.stops[2].inbound.booking = {
+      reference: 'BUNDHAYA-1',
+      platform: 'Bundhaya',
+      cancelBy: null,
+      contact: null,
+      detail: null,
+    }
+
+    expect(
+      lossesOfStop(trip.stops[2], '2026-08-17').map((loss) => loss.kind),
+    ).toEqual(['stay', 'leg'])
+  })
+
+  it('does not count a price with no Booking under it', () => {
+    // Langkawi's Shortlisted target carries a real 2,250 SEK asking price and commits none of it.
+    // Removing an intention costs retyping, and the guard exists for what Onward cannot recreate.
+    const langkawi = seaTrip().stops[5]
+
+    expect(langkawi.stays[0].price).not.toBeNull()
+    expect(lossesOfStay(langkawi.stays[0], '2026-08-17')).toEqual([])
+  })
+
+  it('ignores a Booking nothing has been written into yet', () => {
+    // What "＋ I have booked this" creates, and what the click that undoes it should not have to argue with.
+    const blank = {
+      reference: '',
+      platform: null,
+      cancelBy: null,
+      contact: null,
+      detail: null,
+    }
+
+    expect(
+      lossOfBooking('stay', 'Somewhere', blank, null, '2026-08-17'),
+    ).toBeNull()
+  })
+
+  it('guards a Booking whose reference has not arrived but whose deadline has', () => {
+    // #12's data-loss case exactly: booked by phone, deadline and number written down, confirmation
+    // email still in the post. Testing the reference here is what destroyed this once already.
+    const early = {
+      reference: '',
+      platform: null,
+      cancelBy: '2026-12-21',
+      contact: '+66 81 893 8008',
+      detail: null,
+    }
+
+    expect(
+      lossOfBooking(
+        'stay',
+        'Pankabay',
+        early,
+        { amount: 772.42, currency: 'SEK' },
+        '2026-08-17',
+      ),
+    ).toMatchObject({ reference: '', deadline: 'live', cancelBy: '2026-12-21' })
+  })
+})
+
+/** The reducer's own splice, so these test the derivation rather than a second idea of a move. */
+function withStopsMoved(trip: Trip, from: number, to: number): Trip {
+  const stops = [...trip.stops]
+  const [moved] = stops.splice(from, 1)
+  stops.splice(to, 0, moved)
+  return { ...trip, stops }
+}
+
+describe('Legs left describing a movement nobody made', () => {
+  it('finds none in a Trip nobody has reordered', () => {
+    const trip = seaTrip()
+    expect(staleLegs(trip, trip)).toEqual([])
+  })
+
+  it('stales three Legs from one drag, and names what each used to follow', () => {
+    // Koh Kradan to the front. Its own Leg is re-pointed, Bangkok's is (it now follows Kradan), and
+    // Koh Mook's is (it closes the gap Kradan left). Ao Nang still follows Bangkok and is untouched.
+    const committed = seaTrip()
+    const draft = withStopsMoved(committed, 2, 0)
+
+    expect(staleLegs(draft, committed)).toEqual([
+      { stopId: 'kradan', wasFrom: 'Ao Nang', nowFrom: 'Copenhagen' },
+      { stopId: 'bkk', wasFrom: 'Copenhagen', nowFrom: 'Koh Kradan' },
+      { stopId: 'mook', wasFrom: 'Koh Kradan', nowFrom: 'Ao Nang' },
+    ])
+  })
+
+  it('names the Origin for the Leg that has become the way out of it', () => {
+    // Bangkok pushed down one. Ao Nang is now the first Stop, so its sleeper — entered as the way in
+    // from Bangkok — is claimed to be the long-haul out of Copenhagen; and Bangkok's flight, entered
+    // as exactly that long-haul, now claims to start in Ao Nang. `wasFrom` is what each *used* to
+    // follow, which is the fact that tells the traveller which one to fix.
+    const committed = seaTrip()
+    const draft = withStopsMoved(committed, 0, 1)
+
+    expect(staleLegs(draft, committed)).toEqual([
+      { stopId: 'aonang', wasFrom: 'Bangkok', nowFrom: 'Copenhagen' },
+      { stopId: 'bkk', wasFrom: 'Copenhagen', nowFrom: 'Ao Nang' },
+      { stopId: 'kradan', wasFrom: 'Ao Nang', nowFrom: 'Bangkok' },
+    ])
+  })
+
+  it('stales the follower of a removed Stop, and can still name the Stop that has gone', () => {
+    const committed = seaTrip()
+    const draft = {
+      ...committed,
+      stops: committed.stops.filter((stop) => stop.id !== 'aonang'),
+    }
+
+    // Koh Kradan now arrives from Bangkok, and 'Ao Nang' is only findable in `committed` — which is
+    // the reason the comparison takes both Trips.
+    expect(staleLegs(draft, committed)).toEqual([
+      { stopId: 'kradan', wasFrom: 'Ao Nang', nowFrom: 'Bangkok' },
+    ])
+  })
+
+  it('stales the Stop an insertion pushed down, and never the inserted one', () => {
+    const committed = seaTrip()
+    const inserted = stop('ngai', 'Koh Ngai', null, null, leg(null))
+    const stops = [...committed.stops]
+    stops.splice(3, 0, inserted)
+
+    expect(staleLegs({ ...committed, stops }, committed)).toEqual([
+      { stopId: 'mook', wasFrom: 'Koh Kradan', nowFrom: 'Koh Ngai' },
+    ])
+  })
+
+  it('says nothing about a rename, because identity is the id', () => {
+    const committed = seaTrip()
+    const draft = {
+      ...committed,
+      stops: committed.stops.map((stop) =>
+        stop.id === 'mook' ? { ...stop, name: 'Ko Muk' } : stop,
+      ),
+    }
+
+    expect(staleLegs(draft, committed)).toEqual([])
+  })
+
+  it('stales the Leg home when a different Stop ends the trip', () => {
+    const committed = seaTrip()
+    const draft = withStopsMoved(committed, 7, 0)
+
+    expect(staleLegs(draft, committed)).toContainEqual({
+      stopId: null,
+      wasFrom: 'Kuala Lumpur',
+      nowFrom: 'Penang — George Town',
+    })
+  })
+
+  it('leaves the Leg home alone while it is still only a placeholder', () => {
+    // #30 owns what an absent `returnLeg` renders. Nothing was entered against anything, so nothing
+    // can have gone stale.
+    const committed = { ...seaTrip(), returnLeg: null }
+    const draft = withStopsMoved(committed, 7, 0)
+
+    expect(staleLegs(draft, committed).some((leg) => leg.stopId === null)).toBe(
+      false,
+    )
+  })
+})
+
+describe('the mis-click carve-out', () => {
+  it('does not read a blank Booking as a loss just because the row has a price', () => {
+    // The bug this replaces: a Shortlisted Stay carries a real asking price with nothing committed, so
+    // one click of "＋ I have booked this" and one of "not booked after all" fired the guard and told
+    // the traveller that Langkawi's 2,250 SEK was already spent. The unit is the Booking.
+    const blank = {
+      reference: '',
+      platform: null,
+      cancelBy: null,
+      contact: null,
+      detail: null,
+    }
+
+    expect(
+      lossOfBooking(
+        'stay',
+        'Telaga / Pantai Kok — not Cenang',
+        blank,
+        { amount: 2250, currency: 'SEK' },
+        '2026-08-17',
+      ),
+    ).toBeNull()
+  })
+
+  it('still counts a Booking with one field written and no price at all', () => {
+    const justADeadline = {
+      reference: '',
+      platform: null,
+      cancelBy: '2026-12-21',
+      contact: null,
+      detail: null,
+    }
+
+    expect(
+      lossOfBooking('stay', 'Pankabay', justADeadline, null, '2026-08-17'),
+    ).toMatchObject({ deadline: 'live', price: null })
   })
 })

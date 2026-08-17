@@ -2,9 +2,17 @@
 
 import { useCallback, useState, type Dispatch } from 'react'
 
-import { markerAt, nightsAt, perNight } from '../itinerary/derive'
+import {
+  lossesOfStay,
+  lossesOfStop,
+  markerAt,
+  nightsAt,
+  perNight,
+  today,
+} from '../itinerary/derive'
 import type { Stay, StayStatus, Stop } from '../itinerary/model'
 import { CoordField } from './CoordField'
+import { LossPanel, useRemoving } from './Removing'
 import { NameField } from './NameField'
 import {
   DateInput,
@@ -100,6 +108,8 @@ export function StopCard({
    */
   const [showCoord, setShowCoord] = useState(false)
   const revealCoord = useCallback(() => setShowCoord(true), [])
+  const losses = lossesOfStop(stop, today())
+  const removing = useRemoving(losses)
 
   return (
     <div
@@ -254,6 +264,35 @@ export function StopCard({
               />
             ))}
           </div>
+
+          {/*
+           * The way out of the Itinerary, and it lives *inside* the open card on purpose: a removal
+           * in the always-visible row would be one stray click away at every scroll position, and
+           * this is the one control in the sidebar that can destroy a booking you cannot re-derive.
+           */}
+          <div className="mt-3 flex justify-end border-t border-black/8 pt-2.5">
+            <button
+              onClick={() =>
+                removing.attempt(() =>
+                  dispatch({ type: 'remove-stop', id: stop.id }),
+                )
+              }
+              className="text-[10.5px] text-black/35 hover:text-red-700"
+            >
+              remove this stop
+            </button>
+          </div>
+          {removing.confirming && (
+            <LossPanel
+              heading={`Removing ${stop.name || 'this stop'} takes ${
+                losses.length === 1 ? 'a booking' : `${losses.length} bookings`
+              } with it.`}
+              losses={losses}
+              confirmLabel="Remove anyway"
+              onRemove={() => dispatch({ type: 'remove-stop', id: stop.id })}
+              onDismiss={removing.dismiss}
+            />
+          )}
         </div>
       )}
     </div>
@@ -275,6 +314,9 @@ function StayFields({
     dispatch({ type: 'edit-stay', stopId: stop.id, index, patch })
 
   const rate = perNight(stay, stop)
+  const losses = lossesOfStay(stay, today())
+  const removing = useRemoving(losses)
+  const remove = () => dispatch({ type: 'remove-stay', stopId: stop.id, index })
 
   return (
     <div className="mb-2 rounded border border-black/12 px-2.5 py-2">
@@ -294,14 +336,22 @@ function StayFields({
           </button>
         ))}
         <button
-          onClick={() =>
-            dispatch({ type: 'remove-stay', stopId: stop.id, index })
-          }
+          onClick={() => removing.attempt(remove)}
           className="ml-auto text-[10.5px] text-black/30 hover:text-red-700"
         >
           remove
         </button>
       </div>
+
+      {removing.confirming && (
+        <LossPanel
+          heading={`Removing ${stay.name || 'this stay'} takes its booking with it.`}
+          losses={losses}
+          confirmLabel="Remove anyway"
+          onRemove={remove}
+          onDismiss={removing.dismiss}
+        />
+      )}
 
       <Field label="Name">
         <Text
@@ -351,6 +401,9 @@ function StayFields({
         booking={stay.booking}
         onChange={(booking) => edit({ booking })}
         what="this stay"
+        kind="stay"
+        name={stay.name}
+        price={stay.price}
       />
     </div>
   )

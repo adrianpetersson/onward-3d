@@ -31,7 +31,13 @@ How much ground a Stop covers — Koh Kradan's is the island, Bangkok's is the c
 _Avoid_: bounds, bbox, extent, envelope, area
 
 **Leg**:
-The movement into a Stop from the one before it — or from the Origin, for the first. Legs are derived from Stop order rather than entered directly, so an Itinerary can never be missing one. One booked movement is one Leg, however many vehicles it takes.
+The movement into a Stop from the one before it — or from the Origin, for the first. Legs are derived
+from Stop order rather than entered directly, so an Itinerary can never be missing one — though it can
+hold a **stale** one. Reordering the Stops re-points a Leg without touching what was entered against
+it, so the times, fare and carrier of the Kradan speedboat survive being dragged above Ao Nang and go
+on describing a crossing nobody booked. Onward says so and changes nothing: the order the traveller
+dragged is the order that draws ([#19](https://github.com/adrianpetersson/onward/issues/19)).
+One booked movement is one Leg, however many vehicles it takes.
 _Avoid_: route, connection, transfer, hop, segment
 
 **Mode**:
@@ -43,12 +49,22 @@ A named point a Leg passes through without staying — Beijing, on the way to Ba
 _Avoid_: layover, stopover, waypoint, transit
 
 **Booking**:
-A reservation that has been made and has a reference number. Attaches to a Stop (as a Stay) or to a Leg (a seat, a berth, a ticket). Without a reference there is no Booking, only an intention.
+A reservation that has been made and has a reference number. Attaches to a Stop (as a Stay) or to a Leg
+(a seat, a berth, a ticket). Without a reference there is no Booking, only an intention — but that is a
+statement about the **world**, never a licence to throw away what has been written down. A bed booked by
+phone has a deadline and a number before its confirmation email arrives, and Onward keeps every word of
+it ([#12](https://github.com/adrianpetersson/onward/issues/12),
+[ADR 0010](docs/adr/0010-a-removal-hands-back-what-it-destroys.md)).
 _Avoid_: reservation, confirmation, ticket
 
 **Stay**:
-The Booking of somewhere to sleep at a Stop. Deliberately not "hotel" — the audience books hostels, guesthouses and beach huts. Every Stay is Booked, a Placeholder, or Shortlisted.
-_Avoid_: hotel, accommodation, lodging, room
+The Booking of somewhere to sleep at a Stop. Deliberately not "hotel" — the audience books hostels,
+guesthouses and beach huts. Every Stay is Booked, a Placeholder, or Shortlisted — three states and not
+four: **a cancelled Stay is a deleted one**. A Stop holds a _list_ of Stays precisely so the window
+where the replacement is booked and the incumbent is not yet cancelled has somewhere to live, and once
+the incumbent is cancelled it goes rather than lingering as a state nobody is planning around
+([#19](https://github.com/adrianpetersson/onward/issues/19)).
+_Avoid_: hotel, accommodation, lodging, room, cancelled
 
 **Placeholder**:
 A Stay that is genuinely booked — reference, price, money committed — but held only so the dates cannot sell out, and meant to be replaced before its cancellation deadline.

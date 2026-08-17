@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { newStop, newTrip } from '../itinerary/create'
+import { staleLegs } from '../itinerary/derive'
 import type { Trip } from '../itinerary/model'
 import {
   itineraryState,
@@ -234,5 +235,74 @@ describe('Stays', () => {
     )
 
     expect(left.draft.stops[0].stays.map((s) => s.name)).toEqual(['Second'])
+  })
+})
+
+describe('what the reducer leaves for the stale-Leg report to find', () => {
+  it('reports the follower of a removed Stop, against the committed order', () => {
+    const trip = tripOf('Bangkok', 'Ao Nang', 'Koh Kradan')
+    const removed = run(itineraryState(trip), {
+      type: 'remove-stop',
+      id: trip.stops[1].id,
+    })
+
+    expect(staleLegs(removed.draft, removed.committed)).toEqual([
+      { stopId: trip.stops[2].id, wasFrom: 'Ao Nang', nowFrom: 'Bangkok' },
+    ])
+  })
+
+  it('reports three Legs from one drag', () => {
+    const trip = tripOf('Bangkok', 'Ao Nang', 'Koh Kradan', 'Koh Mook')
+    const dragged = run(itineraryState(trip), {
+      type: 'move-stop',
+      from: 2,
+      to: 0,
+    })
+
+    expect(
+      staleLegs(dragged.draft, dragged.committed).map((l) => l.stopId),
+    ).toEqual([trip.stops[2].id, trip.stops[0].id, trip.stops[3].id])
+  })
+
+  it('reports the Stop an insertion pushed down, and not the new one', () => {
+    const trip = tripOf('Bangkok', 'Koh Kradan')
+    const inserted = run(itineraryState(trip), {
+      type: 'insert-stop',
+      after: 0,
+    })
+
+    // `nowFrom` is null because the inserted Stop has no name yet — `create.ts` makes it empty rather
+    // than plausible — so the banner falls back to "what it arrives from has changed" rather than
+    // naming a blank.
+    expect(staleLegs(inserted.draft, inserted.committed)).toEqual([
+      { stopId: trip.stops[1].id, wasFrom: 'Bangkok', nowFrom: null },
+    ])
+  })
+
+  it('clears every flag on Save, because a reorder you saved is a reorder you meant', () => {
+    const trip = tripOf('Bangkok', 'Ao Nang', 'Koh Kradan')
+    const saved = run(
+      itineraryState(trip),
+      { type: 'move-stop', from: 2, to: 0 },
+      { type: 'save' },
+    )
+
+    expect(staleLegs(saved.draft, saved.committed)).toEqual([])
+  })
+
+  it('clears the flags with Discard, because it puts the committed order back', () => {
+    const trip = tripOf('Bangkok', 'Ao Nang', 'Koh Kradan')
+    const discarded = run(
+      itineraryState(trip),
+      { type: 'move-stop', from: 2, to: 0 },
+      { type: 'discard' },
+    )
+
+    expect(discarded.draft.stops.map((s) => s.name)).toEqual([
+      'Bangkok',
+      'Ao Nang',
+      'Koh Kradan',
+    ])
+    expect(staleLegs(discarded.draft, discarded.committed)).toEqual([])
   })
 })

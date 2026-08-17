@@ -56,6 +56,14 @@ export type StayStatus = 'booked' | 'placeholder' | 'shortlisted'
  * `reference` is non-optional on purpose: without one there is no Booking, only an intention, and an
  * intention lives in the `price` of the Stay or Leg it sits beside. This is one type rather than two
  * because the glossary already said so — a Booking attaches to a Stop (a Stay) or to a Leg.
+ *
+ * **But it may be `''`, and nothing may treat that as "not a Booking".** The sidebar writes an empty
+ * one the moment "＋ I have booked this" is clicked, and a real bed booked by phone carries a deadline
+ * and a phone number before its confirmation email arrives.
+ * [#12](https://github.com/adrianpetersson/onward/issues/12) enforced the rule above literally and
+ * deleted exactly that, and [ADR 0010](../../docs/adr/0010-a-removal-hands-back-what-it-destroys.md)
+ * is what now guards it: the removal guard asks whether *any* field has been written into, never
+ * whether this one has.
  */
 export type Booking = {
   /** `688166919` · `EEOIO2` · `MMMNEN`. The one string that makes this a Booking at all. */

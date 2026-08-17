@@ -16,6 +16,7 @@ import { useCallback, useState } from 'react'
 import {
   dateFloor,
   orderConflicts,
+  staleLegs,
   tripEnd,
   tripNights,
   tripStart,
@@ -39,13 +40,22 @@ export function Sidebar({
   /** What the footer says about where the trip lives. Composed by `App`, placed here. */
   storage?: React.ReactNode
 }) {
-  const { draft, unsaved, dispatch, save, discard } = useItinerary(trip)
+  const { draft, committed, unsaved, dispatch, save, discard } =
+    useItinerary(trip)
   const [open, setOpen] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [dragging, setDragging] = useState<number | null>(null)
 
   const conflicts = new Set(orderConflicts(draft))
   const nights = tripNights(draft)
+  /*
+   * Which Legs a reorder left describing a movement nobody made. Keyed by Stop id, with `null` for
+   * the Leg home — the same shape `staleLegs` returns, which is the committed Trip compared against
+   * the draft rather than anything the model stores.
+   */
+  const stale = new Map(
+    staleLegs(draft, committed).map((leg) => [leg.stopId, leg]),
+  )
 
   const toggle = (key: string) =>
     setExpanded((current) => (current === key ? null : key))
@@ -141,6 +151,7 @@ export function Sidebar({
                 open={expanded === `leg:${stop.id}`}
                 onToggle={() => toggle(`leg:${stop.id}`)}
                 dirty={false}
+                stale={stale.get(stop.id) ?? null}
                 dispatch={dispatch}
               />
             </div>
@@ -196,6 +207,7 @@ export function Sidebar({
               open={expanded === 'leg:return'}
               onToggle={() => toggle('leg:return')}
               dirty={false}
+              stale={stale.get(null) ?? null}
               dispatch={dispatch}
             />
             {draft.origin && (
