@@ -34,6 +34,9 @@ import { isPlaced } from './pin'
  * the far edge of the Itinerary spills off the top of the frame. Holding a pitched overview means
  * paying with a hand-tuned padding fudge that no test can pin. The oblique arrives the moment the
  * traveller flies down to a Stop, which is where the Diorama reads anyway.
+ *
+ * All three decisions, and what they cost, are recorded in
+ * [ADR 0008](../../docs/adr/0008-the-camera-frames-the-stops-and-asks-the-browser-nothing.md).
  */
 
 /** Flat and north-up. A framed overview that arrives crooked reads as a bug, not as a flourish. */
