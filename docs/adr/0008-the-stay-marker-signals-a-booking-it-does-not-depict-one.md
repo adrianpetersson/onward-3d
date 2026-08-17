@@ -1,4 +1,4 @@
-# 8. The Stay Marker signals a booking; it does not depict one
+# 0008 — The Stay Marker signals a booking; it does not depict one
 
 Date: 2026-08-17
 

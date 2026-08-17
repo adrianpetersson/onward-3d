@@ -36,7 +36,7 @@ import { isPlaced } from './pin'
  * traveller flies down to a Stop, which is where the Diorama reads anyway.
  *
  * All three decisions, and what they cost, are recorded in
- * [ADR 0008](../../docs/adr/0008-the-camera-frames-the-stops-and-asks-the-browser-nothing.md).
+ * [ADR 0009](../../docs/adr/0009-the-camera-frames-the-stops-and-asks-the-browser-nothing.md).
  */
 
 /** Flat and north-up. A framed overview that arrives crooked reads as a bug, not as a flourish. */

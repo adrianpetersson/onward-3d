@@ -1,7 +1,9 @@
-# 0008 — The camera frames the Stops, flat, and asks the browser nothing
+# 0009 — The camera frames the Stops, flat, and asks the browser nothing
 
 **Status**: accepted, 17 Aug 2026
 **Ticket**: [#24](https://github.com/adrianpetersson/onward/issues/24)
+
+_Renumbered from 0008 to 0009 on 17 Aug 2026. [#21](https://github.com/adrianpetersson/onward/issues/21)'s [ADR 0008](0008-the-stay-marker-signals-a-booking-it-does-not-depict-one.md) was already on `main` when this landed, and ADRs sequence by landing order. The collision survived a rebase **onto** that very commit, because the two filenames differ and git therefore sees no conflict — `docs/adr` numbering has no guard from version control by construction, which is why `adr-numbering.test.ts` now asserts it._
 
 ## The decision
 
