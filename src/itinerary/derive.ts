@@ -105,6 +105,32 @@ export function legDepartureDate(trip: Trip, index: number): string | null {
   return shiftDate(stop.arrival, -stop.inbound.dayRoll)
 }
 
+/**
+ * The last date the Itinerary knows of before a Stop — the floor its own dates sit on.
+ *
+ * A trip's dates are sequential: you cannot arrive at Koh Mook before you left Koh Kradan. This is a
+ * **floor and never a value**, which is the distinction `model.ts` insists on — a Stop's arrival is
+ * *not* derivable from the previous departure, because an overnight Leg puts a night between them.
+ * What it buys is a date field that opens where the trip is instead of on today.
+ *
+ * It walks backwards until it finds a Stop carrying a date, so one half-filled Stop in the middle
+ * does not break the chain for everything after it. The nearest Stop in front wins rather than the
+ * latest date anywhere before it: a dragged order that contradicts its own dates is allowed to stand
+ * (#10), and this follows the ribbon rather than policing it.
+ *
+ * `null` on the first Stop, which is correct — nothing precedes it, so today is genuinely the best
+ * guess there, and today is already where an unconstrained picker opens.
+ */
+export function dateFloor(trip: Trip, index: number): string | null {
+  for (let i = index - 1; i >= 0; i--) {
+    // Departure first: it is the later of the two, and the one you actually leave on.
+    const date = trip.stops[i].departure ?? trip.stops[i].arrival
+    if (date) return date
+  }
+
+  return null
+}
+
 const RANK: Record<Stay['status'], number> = {
   booked: 0,
   placeholder: 1,

@@ -284,6 +284,14 @@ export function BookingFields({
 
       <div className="flex gap-2">
         <Field label="Free until">
+          {/*
+           * The one date field with no floor, and it is not an oversight. `min` can only anchor a
+           * picker when the floor is in the *future* — it clamps the opening month up, never down —
+           * and a cancellation deadline's only honest floor is the past: `atRisk` is built on
+           * deadlines that have already lapsed, so forbidding them would delete the fact it reads.
+           * A `max` of the arrival would be defensible and would buy nothing, because today already
+           * sits below it and the picker opens on today regardless.
+           */}
           <DateInput
             value={booking.cancelBy}
             onChange={(v) => edit({ cancelBy: v })}

@@ -14,6 +14,7 @@
 import { useState } from 'react'
 
 import {
+  dateFloor,
   orderConflicts,
   tripEnd,
   tripNights,
@@ -150,6 +151,7 @@ export function Sidebar({
               onToggle={() => toggle(stop.id)}
               dirty={false}
               conflicted={conflicts.has(stop.id)}
+              floor={dateFloor(draft, i)}
               dispatch={dispatch}
               dragging={dragging === i}
               onDragStart={() => setDragging(i)}

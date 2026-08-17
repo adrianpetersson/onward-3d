@@ -35,8 +35,15 @@ export function Derived({ label, value }: { label: string; value: ReactNode }) {
   )
 }
 
-const INPUT =
-  'w-full rounded border border-black/15 bg-white px-2 py-1 text-[12px] outline-none focus:border-black/50'
+/**
+ * Split in two so a field can swap its colours without fighting its own base class. Appending
+ * `bg-amber-50` to a string that already says `bg-white` leaves two utilities of equal specificity,
+ * and the winner is decided by the order Tailwind emits them rather than the order they are written
+ * in — which is how the below-floor mark below came out invisible the first time.
+ */
+const INPUT_SHELL = 'w-full rounded border px-2 py-1 text-[12px] outline-none'
+const INPUT_SKIN = 'border-black/15 bg-white focus:border-black/50'
+const INPUT = `${INPUT_SHELL} ${INPUT_SKIN}`
 
 export function Text({
   value,
@@ -57,18 +64,49 @@ export function Text({
   )
 }
 
+/**
+ * A date, and the date it follows.
+ *
+ * `min` is doing two jobs here and the second is the one worth having. It forbids the obvious
+ * mistake — a departure before its own arrival — but it also **anchors the picker**: Chromium clamps
+ * the month the calendar opens on into `[min, max]` and then pre-selects the nearest valid day, so a
+ * Departure carrying its own Arrival as `min` opens on December 2026 with the 14th already under the
+ * cursor, where an unconstrained one opens four months adrift on today. Nothing is written to the
+ * Stop until the traveller commits, which is what makes this an anchor and not a prefill — and
+ * `create.ts` is deliberate that a new Stop stays empty rather than plausible.
+ *
+ * It is deliberately a **soft** floor. `min` disables the wrong days in the picker but does not stop
+ * a date being typed or pasted past it — measured: assigning `2026-12-01` under `min="2026-12-14"`
+ * keeps the value and reports `rangeUnderflow`. So the mis-click is impossible and the deliberate
+ * out-of-order edit is only marked, which is the right way round for a traveller who realises the
+ * whole leg shifts a day and starts from the wrong end.
+ *
+ * The mark is computed rather than left to `:invalid`, which also matches a half-typed date and
+ * would flash red through every normal entry.
+ */
 export function DateInput({
   value,
   onChange,
+  min,
 }: {
   value: string | null
   onChange: (value: string | null) => void
+  /** The date this one may not fall below — and the month its picker opens on. */
+  min?: string | null
 }) {
+  const belowFloor = !!(value && min && value < min)
+
   return (
     <input
       type="date"
-      className={INPUT}
+      className={`${INPUT_SHELL} ${
+        belowFloor ? 'border-amber-600 bg-amber-50' : INPUT_SKIN
+      }`}
+      title={
+        belowFloor ? `This is before ${min}, the date it follows.` : undefined
+      }
       value={value ?? ''}
+      min={min ?? undefined}
       onChange={(e) => onChange(e.target.value || null)}
     />
   )

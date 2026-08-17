@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   atRisk,
+  dateFloor,
   drawingStay,
   legsOf,
   markerAt,
@@ -336,6 +337,87 @@ describe('order against dates', () => {
 
     // Koh Mook now sits after Koh Lipe but arrives three days earlier. Reported, never corrected.
     expect(orderConflicts(trip)).toEqual(['mook'])
+  })
+})
+
+describe('the floor under a Stop’s dates', () => {
+  it('gives the first Stop nothing, because nothing precedes it', () => {
+    // Which is the point: with no floor the picker opens on today, and for the day you leave home
+    // today is genuinely the best guess there is.
+    expect(dateFloor(seaTrip(), 0)).toBeNull()
+  })
+
+  it('anchors a Stop on the departure of the Stop in front of it', () => {
+    // Ao Nang follows Bangkok, which leaves on the 15th — even though Ao Nang is not reached until
+    // the 16th, because the sleeper puts a night in between. A floor, never a value.
+    expect(dateFloor(seaTrip(), 1)).toBe('2026-12-15')
+    expect(seaTrip().stops[1].arrival).toBe('2026-12-16')
+  })
+
+  it('walks back past a Stop that has no dates yet', () => {
+    const trip = seaTrip()
+    trip.stops[1].arrival = null
+    trip.stops[1].departure = null
+
+    // Koh Kradan still anchors on Bangkok rather than falling back to today: one half-filled Stop
+    // in the middle must not break the chain for everything after it.
+    expect(dateFloor(trip, 2)).toBe('2026-12-15')
+  })
+
+  it('takes an arrival when the Stop in front has not been left yet', () => {
+    const trip = seaTrip()
+    trip.stops[1].departure = null
+
+    expect(dateFloor(trip, 2)).toBe('2026-12-16')
+  })
+
+  it('follows the ribbon rather than policing it when an order is dragged out of step', () => {
+    const trip = seaTrip()
+    // Bangkok (14–15 Dec) dragged to the end, behind Kuala Lumpur (leaves 6 Jan) — the case
+    // `orderConflicts` reports and lets stand.
+    const [bangkok] = trip.stops.splice(0, 1)
+    trip.stops.push(bangkok)
+
+    // The nearest Stop in front wins, not the latest date anywhere before. Ao Nang now leads and
+    // takes no floor at all; Bangkok, now last, sits under Kuala Lumpur's departure and is therefore
+    // visibly below its own floor — which is what the sidebar marks.
+    expect(dateFloor(trip, 0)).toBeNull()
+    expect(dateFloor(trip, 7)).toBe('2027-01-06')
+    expect(trip.stops[7].arrival! < '2027-01-06').toBe(true)
+  })
+
+  it('leaves no date field on the real trip opening on today', () => {
+    const trip = seaTrip()
+
+    // The ticket's own test, stated as one: every date the traveller types after the first opens on
+    // the month the trip is in. The first Stop's Arrival is the single exception, by design.
+    const floors = trip.stops.map((_, i) => dateFloor(trip, i))
+
+    expect(floors[0]).toBeNull()
+    expect(floors.slice(1).every((floor) => floor !== null)).toBe(true)
+    expect(floors.slice(1).every((floor) => floor!.startsWith('2026-12'))).toBe(
+      false,
+    )
+    // Every floor lands inside the trip's own span, so no picker opens outside it.
+    for (const floor of floors.slice(1)) {
+      expect(floor! >= '2026-12-14' && floor! <= '2027-01-06').toBe(true)
+    }
+  })
+
+  it('is the whole of what the sidebar hands its two pickers', () => {
+    const trip = seaTrip()
+    // Ao Nang is the one Stop on this trip whose arrival is not the previous departure — the sleeper
+    // puts a night between them — so it is the only one where the two pickers differ at all.
+    const aonang = trip.stops[1]
+
+    // Arrival takes the floor; Departure takes its own arrival, which is the later of the two and
+    // the date a departure actually follows.
+    expect(dateFloor(trip, 1)).toBe('2026-12-15')
+    expect(aonang.arrival ?? dateFloor(trip, 1)).toBe('2026-12-16')
+
+    // With no arrival yet, Departure falls back to the same floor as Arrival rather than to today.
+    aonang.arrival = null
+    expect(aonang.arrival ?? dateFloor(trip, 1)).toBe('2026-12-15')
   })
 })
 

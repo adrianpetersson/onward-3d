@@ -71,6 +71,7 @@ export function StopCard({
   onToggle,
   dirty,
   conflicted,
+  floor,
   dispatch,
   onDragStart,
   onDrop,
@@ -81,6 +82,8 @@ export function StopCard({
   onToggle: () => void
   dirty: boolean
   conflicted: boolean
+  /** The last date known before this Stop — see `dateFloor`. Anchors both pickers. */
+  floor: string | null
   dispatch: Dispatch<Action>
   onDragStart: () => void
   onDrop: () => void
@@ -156,15 +159,23 @@ export function StopCard({
 
           <div className="flex gap-2">
             <Field label="Arrival">
+              {/* The Stop in front of this one. `null` on the first, where today is the honest guess. */}
               <DateInput
                 value={stop.arrival}
                 onChange={(v) => edit({ arrival: v })}
+                min={floor}
               />
             </Field>
             <Field label="Departure">
+              {/*
+               * Its own arrival first — a departure follows the arrival it belongs to, and a Stop is
+               * left on or after the day it is reached. Only while this Stop has no arrival does it
+               * fall back to the Stop in front, so the chain still anchors on a half-filled trip.
+               */}
               <DateInput
                 value={stop.departure}
                 onChange={(v) => edit({ departure: v })}
+                min={stop.arrival ?? floor}
               />
             </Field>
             <div className="w-16 shrink-0">
