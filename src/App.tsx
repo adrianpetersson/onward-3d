@@ -19,7 +19,11 @@ export function App() {
   return (
     <div className="relative size-full overflow-hidden">
       {/* The committed Trip, not the sidebar's draft: a Path appears when the save lands (ruling 12). */}
-      <Diorama trip={store.trip} onReady={setMap} />
+      <Diorama
+        trip={store.trip}
+        onReady={setMap}
+        generation={store.generation}
+      />
 
       <PlacingProvider map={map}>
         {/*

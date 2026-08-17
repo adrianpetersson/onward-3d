@@ -17,6 +17,8 @@ import {
   TERRAIN_SOURCE_ID,
 } from './map-config'
 import { drawItinerary, type Drawing } from './draw-itinerary'
+import { FrameControl } from './FrameControl'
+import { frameTrip, initialCamera } from './frame'
 import { createModelLayer, type Anchor } from './model-layer'
 import type { LngLatTuple } from './model-matrix'
 import { readSpanOf, scaleForDiorama } from './model-scale'
@@ -79,8 +81,21 @@ export function useDiorama(
    * tear the whole map down and build it again.
    */
   onReady?: (map: MapLibreMap | null) => void,
+  /**
+   * The store's `generation`, which bumps **only** when the Itinerary is replaced from outside the
+   * sidebar's own editing — the file adopted on load, or one recovered after a conflict. Never on a
+   * save.
+   *
+   * That distinction is exactly what the camera wants (#24). A save must not re-frame; an adoption
+   * must, because the Trip on screen has just been replaced by a different one and the camera would
+   * otherwise be left framing the Trip that is gone — or, on a machine with no cache yet, sitting on
+   * the empty-state globe with a full Itinerary loaded underneath it.
+   */
+  generation = 0,
 ) {
   const drawing = useRef<Drawing | undefined>(undefined)
+  /** The live map, for the effects below — the one above owns its lifetime and never re-runs. */
+  const instance = useRef<MapLibreMap | undefined>(undefined)
   // The style may still be loading when the first Trip arrives — and it always is, because the cache
   // read is synchronous and the first render already holds the Itinerary (#12).
   const latest = useRef(trip)
@@ -91,10 +106,23 @@ export function useDiorama(
 
     let live = true
 
+    // The tracer keeps its own camera: `?markers=` stands a ring of Stay Markers at Ao Niang and is
+    // measured at z17 pitched 60, which is #7's view and nothing to do with the Itinerary. Framing an
+    // empty Trip there would put the ring off-screen behind a globe and quietly destroy the
+    // affordance.
+    const camera =
+      markerCount() !== null
+        ? INITIAL_VIEW
+        : initialCamera(
+            latest.current,
+            element.clientWidth,
+            element.clientHeight,
+          )
+
     const map = new MapLibreMap({
       container: element,
       style: DIORAMA_STYLE,
-      ...INITIAL_VIEW,
+      ...camera,
       // three.js shares this context, and the model layer wants its edges smoothed.
       canvasContextAttributes: { antialias: true },
       attributionControl: {
@@ -104,7 +132,17 @@ export function useDiorama(
       },
     })
 
+    instance.current = map
+
     map.addControl(new NavigationControl({ visualizePitch: true }), 'top-right')
+
+    // Reads `latest` rather than closing over `trip`: this effect runs once and the control outlives
+    // every Trip that passes through it, so closing over the Trip that happened to exist at
+    // construction would frame an Itinerary the traveller has since edited and saved.
+    map.addControl(
+      new FrameControl(() => frameTrip(map, latest.current)),
+      'top-right',
+    )
 
     // The other half of `?markers=`: every number #7 recorded was taken by reaching the map and
     // the layer from the console, and #8 and #9 will have to take them again. Dev only — the
@@ -167,6 +205,7 @@ export function useDiorama(
 
     return () => {
       live = false
+      instance.current = undefined
       // Before `map.remove()`: the Pulse and the Jump run on `requestAnimationFrame`, and a frame
       // that lands after the map is gone calls `setPaintProperty` on a torn-down style.
       drawing.current?.stop()
@@ -183,4 +222,19 @@ export function useDiorama(
     latest.current = trip
     drawing.current?.redraw(trip)
   }, [trip])
+
+  // Re-frames when — and only when — the Itinerary is replaced from outside the sidebar (#24).
+  //
+  // `framed` starts at the generation the map was constructed at, so the first run is a no-op: the
+  // constructor has already framed that Trip and re-framing it here would be a second camera move on
+  // load, animated, over the top of the one that is already correct. Every later bump is a genuine
+  // adoption — the traveller's file arriving, or a conflict resolved — and gets the fly.
+  const framed = useRef(generation)
+  useEffect(() => {
+    if (generation === framed.current) return
+    framed.current = generation
+
+    const map = instance.current
+    if (map) frameTrip(map, trip)
+  }, [generation, trip])
 }
