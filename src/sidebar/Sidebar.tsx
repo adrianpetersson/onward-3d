@@ -11,7 +11,7 @@
  * until Save.
  */
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import {
   dateFloor,
@@ -255,6 +255,11 @@ function OriginRow({
   // whether home has been placed, or one would offer search while the other showed a coordinate.
   const placed =
     !!trip.origin && (trip.origin.lat !== 0 || trip.origin.lng !== 0)
+  // The Origin gets #25's treatment for the same reason a Stop does, and more urgently: it is the
+  // first field in the ribbon, so it is where a traveller either learns that typing a name finds a
+  // place or learns to go and fetch a coordinate.
+  const [showCoord, setShowCoord] = useState(false)
+  const revealCoord = useCallback(() => setShowCoord(true), [])
 
   return (
     <div className="mb-1">
@@ -316,10 +321,14 @@ function OriginRow({
                 },
               })
             }
+            onStuck={revealCoord}
           />
           <CoordField
             label="Where it is"
             what="home"
+            fallback
+            open={showCoord}
+            onOpen={revealCoord}
             coord={placed ? trip.origin : null}
             onPlace={(coord, name) =>
               dispatch({

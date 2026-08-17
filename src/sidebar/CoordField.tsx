@@ -11,6 +11,14 @@
  * [#5](https://github.com/adrianpetersson/onward/issues/5)'s specification, minus its short-link
  * resolver: Onward ships no server-side code, so a `maps.app.goo.gl` link is told the truth rather
  * than fetched ([ADR 0002](../../docs/adr/0002-no-backend-localstorage-and-one-edge-function.md)).
+ *
+ * **On a Stop and the Origin this box is `fallback`, and hidden until it is asked for**
+ * ([#25](https://github.com/adrianpetersson/onward/issues/25)). Standing it open under the Name field
+ * did not read as *the other way to place this* — it read as **the next step**. Two labelled inputs
+ * stacked look like a form, and a form gets completed top to bottom, so the card asked a traveller who
+ * had just typed `Copenhagen` to go and fetch a Google Maps link as well. A Stay passes no `fallback`
+ * and is unchanged: search is Stops and the Origin only (#18 — `osm_tag=place` cannot find a beach
+ * hut), so for a Stay this box is not the fallback, it is the only path.
  */
 
 import { useState } from 'react'
@@ -28,6 +36,9 @@ export function CoordField({
   coord,
   onPlace,
   what,
+  fallback = false,
+  open = false,
+  onOpen,
 }: {
   label: string
   coord: Coord | null
@@ -39,6 +50,18 @@ export function CoordField({
   onPlace: (coord: Coord | null, name: string | null) => void
   /** Named in the fallback copy, so each message says what it is about to place. */
   what: string
+  /**
+   * Whether something else places this thing in the ordinary case, so this box is the way out rather
+   * than the way in. Opt-in, and off by default: a Stay has no search, and demoting the one field it
+   * can be placed through would leave it with none.
+   */
+  fallback?: boolean
+  /**
+   * `fallback` only: whether the box is showing. Held by the card rather than here because the search
+   * that fails is this field's **sibling** — see `onStuck` in `NameField`.
+   */
+  open?: boolean
+  onOpen?: () => void
 }) {
   const placing = usePlacing()
   const [typed, setTyped] = useState<string | null>(null)
@@ -80,6 +103,27 @@ export function CoordField({
     const picked = await placing.pick()
     setWaiting(false)
     if (picked) place(picked, null)
+  }
+
+  /**
+   * A placed thing always shows its box, whatever `fallback` says: the coordinate in it is the
+   * confirmation that the search landed where it claimed, and re-placing a Stop that came down on the
+   * wrong island is the one repair nothing else offers. So only the *unplaced* card is tidied, which is
+   * the only state that ever misled anyone.
+   */
+  const showing = !fallback || open || coord !== null
+
+  if (!showing) {
+    return (
+      // "by name" rather than a bare "can't find it?" because this line is the traveller's first hint
+      // that the field above searches at all — it has to make sense read on its own, and it sits a
+      // date row away from the box it refers to.
+      <p className="mb-2 text-[10.5px] text-black/40">
+        <button onClick={onOpen} className="underline hover:text-black">
+          can’t find it by name? paste a link or click the map
+        </button>
+      </p>
+    )
   }
 
   return (

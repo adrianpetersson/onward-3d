@@ -52,6 +52,7 @@ export function NameField({
   what,
   onChange,
   onFind,
+  onStuck,
 }: {
   label: string
   value: string | null
@@ -63,6 +64,11 @@ export function NameField({
   onChange: (value: string | null) => void
   /** The traveller picked a row. The caller takes its coordinate and Footprint, never its name. */
   onFind: (find: Find) => void
+  /**
+   * A search came back with nothing, or did not come back at all — so the name path is spent and the
+   * card should show the way out ([#25](https://github.com/adrianpetersson/onward/issues/25)).
+   */
+  onStuck?: () => void
 }) {
   /**
    * The answer **and the question it answers**.
@@ -120,6 +126,30 @@ export function NameField({
     typing && searchable && answer?.query === query ? answer.outcome : null
 
   /**
+   * Whether the field owes an answer it does not have yet — the debounce and the flight together,
+   * because to the traveller they are one wait.
+   *
+   * Derived rather than stored: an answer that does not match the question *is* the pending state, and
+   * the same comparison already gates the rows. Nothing was shown here before, so 350 ms plus two
+   * requests looked exactly like a field that had ignored what was typed — which on hotel wifi is
+   * enough to send someone off to Google Maps for a coordinate, arriving at #25's problem through a
+   * door #25 does not close.
+   */
+  const finding =
+    typing && searchable && query.length >= MIN_QUERY && answer?.query !== query
+
+  /**
+   * A failed search reveals the coordinate box, because at that moment it is the only way forward:
+   * **`Pai` cannot be found by name at any filter setting and `Khao Sok` resolves 800 km away** (#18),
+   * and neither is a Stop the traveller may be denied. The flag lives on the card because the message
+   * that names the repair and the box that performs it are siblings — only their parent sees both.
+   */
+  useEffect(() => {
+    if (outcome?.state === 'none' || outcome?.state === 'unavailable')
+      onStuck?.()
+  }, [outcome?.state, onStuck])
+
+  /**
    * Two queries of five can offer ten rows, and `Koh Lipe` really does — one island and nine hamlets
    * in Liberia, Kosovo, Slovakia and Poland. The ranking rule puts the island first; this stops the
    * tail of near-misses burying the rest of the card while it does.
@@ -172,6 +202,18 @@ export function NameField({
         />
       </Field>
 
+      {/*
+       * One line, in the register the rest of the card already speaks — `no dates yet`, `no mode yet`,
+       * `—` for nights. A spinner would be the loudest thing in the sidebar and skeleton rows would
+       * claim a row count nobody knows yet. It names the query rather than saying "searching", so the
+       * two requests #18's merge sends read as the one question they answer.
+       */}
+      {finding && (
+        <p className="-mt-1 mb-2 text-[10.5px] text-black/40">
+          finding {query}…
+        </p>
+      )}
+
       {searchable && outcome && (
         <div className="-mt-1 mb-2">
           {outcome.state === 'found' && (
@@ -204,18 +246,24 @@ export function NameField({
             </ul>
           )}
 
+          {/*
+           * Both messages used to say "below", pointing at a coordinate box standing open under the
+           * dates. #25 hides that box until it is wanted, and these two states are exactly when it is
+           * wanted — so the position comes out of the copy and `onStuck` puts the box back on screen
+           * instead. A message may name a repair the traveller cannot see.
+           */}
           {outcome.state === 'none' && (
             <p className="text-[10.5px] leading-relaxed text-black/50">
               No place by that name. Some are not in the map's index at all —
-              paste a Google Maps link below, or click the map, to put {what}{' '}
-              exactly where it is.
+              paste a Google Maps link, or click the map, to put {what} exactly
+              where it is.
             </p>
           )}
 
           {outcome.state === 'unavailable' && (
             <p className="text-[10.5px] leading-relaxed text-amber-700">
               Search isn't answering just now — nothing wrong with what you
-              typed. Paste a Google Maps link below, or click the map.
+              typed. Paste a Google Maps link, or click the map.
             </p>
           )}
         </div>

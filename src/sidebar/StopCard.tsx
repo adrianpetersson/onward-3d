@@ -1,6 +1,6 @@
 /** A Stop in the ribbon: the marker, the dates, and the form it opens into. */
 
-import type { Dispatch } from 'react'
+import { useCallback, useState, type Dispatch } from 'react'
 
 import { markerAt, nightsAt, perNight } from '../itinerary/derive'
 import type { Stay, StayStatus, Stop } from '../itinerary/model'
@@ -93,6 +93,13 @@ export function StopCard({
     dispatch({ type: 'edit-stop', id: stop.id, patch })
   const nights = nightsAt(stop)
   const placed = stop.coord.lat !== 0 || stop.coord.lng !== 0
+  /**
+   * Whether the traveller has asked for the coordinate box, or a failed search has asked on their
+   * behalf. Held here because the search and the box are two components and this is the one thing that
+   * sees both. Stable so a message that stays on screen does not re-fire the reveal every render.
+   */
+  const [showCoord, setShowCoord] = useState(false)
+  const revealCoord = useCallback(() => setShowCoord(true), [])
 
   return (
     <div
@@ -155,6 +162,7 @@ export function StopCard({
             onFind={(find) =>
               edit({ coord: find.coord, footprint: find.footprint })
             }
+            onStuck={revealCoord}
           />
 
           <div className="flex gap-2">
@@ -183,9 +191,25 @@ export function StopCard({
             </div>
           </div>
 
+          {/*
+           * Only once it has a name. A card that says `Copenhagen` and has never been placed is the
+           * one that reads as finished when it is not — the traveller typed the name, saw it in the
+           * header and on the Leg above, and nothing says the map has no Pin for it. An *empty* card
+           * needs no warning that nothing is drawn yet, and putting one there would hand a first-run
+           * Stop two lines of muted text under its only input, which is the clutter #25 removed.
+           */}
+          {!placed && stop.name && (
+            <p className="mb-2 text-[10.5px] text-black/45">
+              Not placed yet, so nothing is drawn for it.
+            </p>
+          )}
+
           <CoordField
             label="Where it is"
             what="this stop"
+            fallback
+            open={showCoord}
+            onOpen={revealCoord}
             coord={placed ? stop.coord : null}
             onPlace={(coord, name) =>
               edit({
@@ -200,11 +224,6 @@ export function StopCard({
               })
             }
           />
-          {!placed && (
-            <p className="-mt-1 mb-2 text-[10.5px] text-black/40">
-              Nothing is drawn until this Stop has a coordinate.
-            </p>
-          )}
 
           <div className="mt-3 border-t border-black/8 pt-3">
             <div className="mb-1.5 flex items-baseline justify-between">
