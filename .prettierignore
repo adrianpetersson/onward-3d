@@ -1,0 +1,15 @@
+# Prettier owns source. It does not own files that something other than a human
+# editing them wrote — formatting those either flip-flops on the next write or
+# edits a record. Keep this list short: everything else, including every JSON
+# file under `src/`, is prettier's.
+
+# pnpm rewrites the lockfile in its own format on every install, so a
+# prettier-formatted lockfile survives exactly until the next `pnpm install`.
+pnpm-lock.yaml
+
+# Drift measurements captured from a live browser session, at the indent the
+# capture produced. They are evidence, and they sit beside the PNGs in that
+# folder as the same class of artefact — nothing imports them, so the only
+# effect of formatting them is to edit the record. The next dump pasted in
+# would reintroduce the diff anyway.
+docs/globe/*.json
