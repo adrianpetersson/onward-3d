@@ -40,9 +40,20 @@ export function Derived({ label, value }: { label: string; value: ReactNode }) {
  * `bg-amber-50` to a string that already says `bg-white` leaves two utilities of equal specificity,
  * and the winner is decided by the order Tailwind emits them rather than the order they are written
  * in — which is how the below-floor mark below came out invisible the first time.
+ *
+ * The placeholder colour is a skin, and it is doing more than matching the trip-name box in
+ * `Sidebar.tsx`: every placeholder in here is a *plausible* value — `19:50`, `09:30`, `0`, `Koh Mook`
+ * — and at the browser default grey, the three side by side in the Leg card's times row read as a row
+ * already filled in. A trip that looks entered and is not is the one thing the sidebar must never
+ * suggest.
+ *
+ * **The split does not reach a width**, because `w-full` lives in the shell: `${INPUT} w-16` is the
+ * same trap wearing different clothes, and it is why `MoneyInput` below sizes each input from a
+ * wrapper instead.
  */
 const INPUT_SHELL = 'w-full rounded border px-2 py-1 text-[12px] outline-none'
-const INPUT_SKIN = 'border-black/15 bg-white focus:border-black/50'
+const INPUT_SKIN =
+  'border-black/15 bg-white focus:border-black/50 placeholder:text-black/25'
 const INPUT = `${INPUT_SHELL} ${INPUT_SKIN}`
 
 export function Text({
@@ -123,32 +134,45 @@ export function MoneyInput({
   value: Money | null
   onChange: (value: Money | null) => void
 }) {
+  /*
+   * Each input is sized by the box around it rather than by a width appended to `INPUT`.
+   * `${INPUT} w-16 shrink-0` looks like it narrows the currency box and did the opposite: `w-full` is
+   * in `INPUT_SHELL`, the two widths are of equal specificity, and Tailwind's emit order picked
+   * `w-full` — so the currency box took the whole row and the **amount** was squeezed to 18 px, three
+   * characters of a four-figure fare. Exactly the trap the shell/skin split above was cut to avoid,
+   * arriving through the one channel that split does not cover, since a width is shell and not skin.
+   * A wrapper cannot collide with anything.
+   */
   return (
     <div className="flex gap-1">
-      <input
-        className={INPUT}
-        inputMode="decimal"
-        value={value?.amount ?? ''}
-        placeholder="0"
-        onChange={(e) => {
-          const amount = Number(e.target.value)
-          if (e.target.value === '') return onChange(null)
-          if (Number.isNaN(amount)) return
-          onChange({ amount, currency: value?.currency ?? 'SEK' })
-        }}
-      />
-      <input
-        className={`${INPUT} w-16 shrink-0 uppercase`}
-        value={value?.currency ?? ''}
-        placeholder="SEK"
-        maxLength={3}
-        onChange={(e) =>
-          onChange({
-            amount: value?.amount ?? 0,
-            currency: e.target.value.toUpperCase(),
-          })
-        }
-      />
+      <div className="min-w-0 flex-1">
+        <input
+          className={INPUT}
+          inputMode="decimal"
+          value={value?.amount ?? ''}
+          placeholder="0"
+          onChange={(e) => {
+            const amount = Number(e.target.value)
+            if (e.target.value === '') return onChange(null)
+            if (Number.isNaN(amount)) return
+            onChange({ amount, currency: value?.currency ?? 'SEK' })
+          }}
+        />
+      </div>
+      <div className="w-16 shrink-0">
+        <input
+          className={`${INPUT} uppercase`}
+          value={value?.currency ?? ''}
+          placeholder="SEK"
+          maxLength={3}
+          onChange={(e) =>
+            onChange({
+              amount: value?.amount ?? 0,
+              currency: e.target.value.toUpperCase(),
+            })
+          }
+        />
+      </div>
     </div>
   )
 }
