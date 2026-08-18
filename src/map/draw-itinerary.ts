@@ -6,11 +6,16 @@ import type { Anchor, ModelLayer } from './model-layer'
 import {
   PATH_BEFORE,
   PATH_SOURCE_ID,
-  pathCasingLayer,
   pathData,
-  pathLayer,
   pathsOf,
+  type DrawnPath,
 } from './path'
+// THROWAWAY (#23) — the Path-variant switch. Deleted when the winner lands in `path.ts`.
+import {
+  PATH_EXTRUSION_SOURCE_ID,
+  extrudedPathData,
+  variantFromUrl,
+} from './path-volume.prototype'
 import {
   PIN_HALO_LAYER_ID,
   PIN_SOURCE_ID,
@@ -72,11 +77,24 @@ export function drawItinerary(map: MapLibreMap, models: ModelLayer): Drawing {
     type: 'geojson',
     data: { type: 'FeatureCollection', features: [] },
   })
-  // Casing first: `addLayer` inserts immediately before its anchor, so adding both against
-  // `PATH_BEFORE` in this order leaves the core drawn over its own edge. Two layers off one source —
-  // the geometry is uploaded once and the casing costs a second draw of it, not a second copy.
-  map.addLayer(pathCasingLayer(), PATH_BEFORE)
-  map.addLayer(pathLayer(), PATH_BEFORE)
+
+  // THROWAWAY (#23): which Path treatment to draw, from `?variant=`. On `main` this is the two
+  // lines below and nothing else. Casing first: `addLayer` inserts immediately before its anchor, so
+  // adding both against `PATH_BEFORE` in this order leaves the core drawn over its own edge. Layers
+  // off one source — the geometry is uploaded once and each extra layer costs a second draw of it,
+  // not a second copy.
+  const variant = variantFromUrl()
+  for (const layer of variant.lines) map.addLayer(layer, PATH_BEFORE)
+
+  // The extrusion route needs its own source, because its width lives in the geometry rather than in
+  // a paint property — see `extrudedPathData`.
+  if (variant.extrusion) {
+    map.addSource(PATH_EXTRUSION_SOURCE_ID, {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    })
+    map.addLayer(variant.extrusion, PATH_BEFORE)
+  }
 
   map.addSource(PIN_SOURCE_ID, {
     type: 'geojson',
@@ -136,12 +154,43 @@ export function drawItinerary(map: MapLibreMap, models: ModelLayer): Drawing {
     }
   }
 
+  /*
+   * THROWAWAY (#23) — the extrusion route's geometry has to be rebuilt whenever the zoom changes,
+   * because an extrusion's width is in metres and a line's is in pixels. This handler *is* the cost
+   * of that route, made visible: a line layer needs no equivalent, at any zoom.
+   */
+  let lastPaths: DrawnPath[] = []
+  /*
+   * Driven off `render` with a zoom guard rather than off `zoomend`, and that is a finding rather
+   * than a style choice: on `zoomend` the band came out sized for whatever zoom the last *redraw*
+   * happened at, which at the load frame is z5.63 — so viewed at z8.6 it drew **54 px wide instead
+   * of 7**, the ratio of the two zooms. An extrusion's width is geometry, so anything that changes
+   * the zoom without going through the handler leaves the band the wrong size, silently. A line
+   * layer cannot have this bug, because its width is a screen-space paint property.
+   */
+  let builtAt = Number.NaN
+  const reextrude = () => {
+    if (!variant.extrusion) return
+
+    const zoom = map.getZoom()
+    if (Math.abs(zoom - builtAt) < 0.02) return
+    builtAt = zoom
+
+    map
+      .getSource<GeoJSONSource>(PATH_EXTRUSION_SOURCE_ID)
+      ?.setData(extrudedPathData(lastPaths, map.getCenter().lat, zoom))
+  }
+  if (variant.extrusion) map.on('render', reextrude)
+
   const redraw = (trip: Trip) => {
     const mine = ++generation
     const paths = pathsOf(trip)
     const stays = stayMarkersOf(trip)
 
     map.getSource<GeoJSONSource>(PATH_SOURCE_ID)?.setData(pathData(paths))
+    lastPaths = paths
+    builtAt = Number.NaN
+    reextrude()
     map.getSource<GeoJSONSource>(PIN_SOURCE_ID)?.setData(pinData(trip))
 
     pulsing = trip.stops.filter(isPlaced).some((stop) => markerAt(stop).pulsing)
@@ -187,6 +236,11 @@ export function drawItinerary(map: MapLibreMap, models: ModelLayer): Drawing {
   }
 
   const stop = () => {
+    // THROWAWAY (#23): the handler calls `setData` on a source, and a zoom that lands after
+    // `map.remove()` throws inside a callback nothing is catching — the same reason the Pulse is
+    // cancelled below.
+    if (variant.extrusion) map.off('render', reextrude)
+
     // Bumped so a redraw already in flight cannot resurrect the loop when its GLBs land.
     generation++
     pulsing = false

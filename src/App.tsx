@@ -2,6 +2,8 @@ import { useState } from 'react'
 import type { MapLibreMap } from 'maplibre-gl'
 
 import { ConflictDialog, StorageLine } from './itinerary/StorageNotice'
+// THROWAWAY (#23) — deleted when the winner lands in `path.ts`.
+import { PrototypeSwitcher } from './PrototypeSwitcher.prototype'
 import { useStore } from './itinerary/use-store'
 import { Diorama } from './map/Diorama'
 import { PlacingProvider } from './map/placing'
@@ -49,6 +51,9 @@ export function App() {
       {store.conflict && (
         <ConflictDialog conflict={store.conflict} onSettle={store.settle} />
       )}
+
+      {/* THROWAWAY (#23) — the Path-variant bar. Dev only, so a stray merge cannot ship it. */}
+      {import.meta.env.DEV && <PrototypeSwitcher />}
     </div>
   )
 }

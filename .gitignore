@@ -8,3 +8,12 @@ dist/
 .claude/worktrees/
 .playwright-mcp/
 .env*.local
+
+# THROWAWAY (#23) — the Path-variant prototype's reproducible intermediates. The on/off frame pairs
+# and the per-camera frames the contact sheets are built from regenerate in one command
+# (docs/paths-volume/README.md); only the sheets and the two cited cameras are worth carrying.
+docs/paths-volume/measure/*.png
+docs/paths-volume/globe-*.png
+docs/paths-volume/kradan-flat-*.png
+docs/paths-volume/allmodes-*.png
+docs/paths-volume/load-*.png
