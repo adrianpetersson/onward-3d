@@ -41,7 +41,15 @@ One booked movement is one Leg, however many vehicles it takes.
 _Avoid_: route, connection, transfer, hop, segment
 
 **Mode**:
-How a Leg is travelled — flight, train, ferry, boat, bus, van. A Leg has one Mode and may carry a second where a single ticket covers two vehicles: the Bangkok sleeper that ends in a van is one Leg with two Modes. The first is the one the map draws.
+How a Leg is travelled — flight, train, ferry, boat, bus, van. A Leg has one Mode and may carry a
+second where a single ticket covers two vehicles: the Bangkok sleeper that ends in a van is one Leg
+with two Modes, and the first is the one the **Vehicle** depicts.
+
+**A Path does not show its Mode.** It did until #23 — every Mode had its own colour and its own dash
+— and now every Path is one green
+([ADR 0012](docs/adr/0012-a-path-is-one-green-solid-and-carries-no-mode.md)). So a Mode reaches the
+map only through the Vehicle standing on the Path, which is hidden at the zooms where a Leg is
+smallest, and otherwise lives in the sidebar.
 _Avoid_: transport type, vehicle type, method
 
 **Via**:
@@ -99,7 +107,15 @@ The line drawn on the map for a Leg. A bird's path between two Stops, not a rout
 alignment — and a bird's path is a **great circle**, so a Path curves on the map and is never the
 straight line between its ends. It lies on the ground: a Path has no height, not even a flight's
 ([ADR 0006](docs/adr/0006-a-path-is-a-line-layer-never-three-js.md)).
-_Avoid_: arc, route, line, polyline, trail
+
+One green, drawn in three tones so it reads as an object lying on the terrain rather than as ink
+painted over it — a lit top face, a bed, and a side wall the width of the band's own thickness. Every
+Path is the same green whatever its Mode, and the only thing its colour still says is whether the Leg
+has been told how it is travelled at all: an undecided Leg is drained
+([#23](https://github.com/adrianpetersson/onward/issues/23),
+[ADR 0012](docs/adr/0012-a-path-is-one-green-solid-and-carries-no-mode.md)). The volume is three
+colours of one flat line, not geometry — nothing about a Path is ever extruded or three.js.
+_Avoid_: arc, route, line, polyline, trail. Never write as though a Path names its Mode.
 
 **Vehicle**:
 The 3D model that depicts a Leg's Mode on the map — a plane on a flight, a boat on a ferry. The depiction of a Mode, never the Mode itself.

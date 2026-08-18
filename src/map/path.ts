@@ -235,38 +235,56 @@ export function pathsOf(trip: Trip): DrawnPath[] {
 }
 
 /**
- * A colour and a dash per Mode, so a Leg says how it is travelled without a legend.
+ * One green for every Mode, and a drained green for the Leg that has not been told which.
  *
- * Both are load-bearing and they carry at different zooms. The **colour** is what separates a ferry
- * from a boat when the whole island chain is a couple of hundred pixels of coast; the **dash** is
- * what survives a Path being one pixel wide on the trip view, where the Vehicle standing on it is
- * far too small to read and the coral dashed line over Siberia is instantly a flight.
+ * **This replaces #8's colour-and-dash table, and it is a deliberate loss.** #8 gave every Mode its
+ * own ink and its own dash on the grounds that both are load-bearing at different zooms: the colour
+ * separates a ferry from a boat when the island chain is 200 px of coast, and the dash survives a
+ * Path one pixel wide. #22 then measured the palette and left it untouched precisely so
+ * [#23](https://github.com/adrianpetersson/onward/issues/23) could spend it.
  *
- * Dash lengths are in multiples of the line width, which is what MapLibre measures them in.
+ * #23 spent both, on Adrian's ruling from the prototype's own pictures: *"the dashes are ugly, I want
+ * it all green in one colour."* So **the Mode is no longer on the Path at all.** It is on the Vehicle
+ * standing on the Path, and in the sidebar. What that costs is stated in
+ * [ADR 0012](../../docs/adr/0012-a-path-is-one-green-solid-and-carries-no-mode.md) rather than hidden
+ * here: at region and trip zoom, where #8 culls the Vehicle, nothing on the map says which Leg is
+ * which.
  *
- * **#8 said these were "chosen against #11's palette… so none of them disappears into the ground or
- * the sea", and measuring them says otherwise for exactly one:** `boat` over water is **ΔE 14.0**,
- * against `ferry`'s 24.9 over the same water and 46.9 for the next weakest pairing anywhere on the
- * map. Teal on teal, and it is on three of the real trip's nine Legs. That is what #22 was filed
- * about, and it is **not fixed here** — the ink is untouched, because the casing below separates the
- * band from the ground without spending the colour channel #23 owns.
+ * What it buys is not only taste. A dash length is a multiple of line width, so Koh Kradan → Koh Mook
+ * — **5.1 px long** at the app's own opening camera — carried 0.6 of one dash cycle and whether it
+ * drew was a matter of phase. #22 covered that with a solid casing. Solid, the problem does not exist:
+ * the Leg is 5.1 px of ink unconditionally.
+ *
+ * The green is measured, not picked: **ΔE 34.8** from its worst ground on its own, and 52.5 once the
+ * bed is counted — against the 43.4 the neutral dark managed. It is *more* visible than what it
+ * replaces, which was the surprise of the prototype: the Diorama's two green grounds
+ * (`park #c6d6b0`, `landcover_wood #b7cba4`) are pale desaturated sage, so a matte mid-green is far
+ * from both.
  */
-export const MODE_STYLE: Record<
-  DrawnMode,
-  { ink: string; dash: readonly number[] }
-> = {
-  flight: { ink: '#d9694a', dash: [2, 1.4] },
-  train: { ink: '#7a5c8e', dash: [3, 1, 0.6, 1] },
-  ferry: { ink: '#2f7f86', dash: [4, 1.6] },
-  boat: { ink: '#46a0a6', dash: [1.6, 1.4] },
-  bus: { ink: '#c0883a', dash: [2.4, 1.2] },
-  van: { ink: '#a86b2d', dash: [1, 1.2] },
-  /** Not a Mode: a Leg that has one and has not been told which. Muted, and finely dotted. */
-  unknown: { ink: '#9a9086', dash: [0.6, 1.4] },
-}
+export const PATH_INK = '#3f8a59'
 
-export const DRAWN_MODES = Object.keys(MODE_STYLE) as DrawnMode[]
+/**
+ * The Mode-less Leg, and the one distinction the Path still draws.
+ *
+ * `unknown` is **not a Mode** — it is a Leg that has one and has not been told which — so drawing it
+ * differently does not reintroduce per-Mode colour. #8 was deliberate that "the movement is real even
+ * when how you make it is not decided", and one flat green for everything would take that back: an
+ * undecided Leg would be indistinguishable from a booked ferry.
+ *
+ * Drained rather than dashed, because the dash is what was just removed. **ΔE 26.1** from `PATH_INK`
+ * and 30.1 from its worst ground, so it reads as the same object with the life taken out of it.
+ */
+export const PATH_UNKNOWN_INK = '#6b7d68'
 
+export const DRAWN_MODES: DrawnMode[] = [
+  'flight',
+  'train',
+  'ferry',
+  'boat',
+  'bus',
+  'van',
+  'unknown',
+]
 /**
  * The Path's two widths, and why there is only one number for each.
  *
@@ -305,21 +323,50 @@ export const PATH_WIDTH_PX = 4
 export const PATH_CASING_PX = 7
 
 /**
- * One dark for every Mode, deliberately — **the casing must not carry hue**.
+ * The bed the band lies on — one dark green under every Path.
  *
- * The obvious alternative is a per-Mode casing, a darker shade of each ink, and it was built and
- * measured before this one. It loses on both counts. Darkening compresses the palette toward the
- * shade, so `boat` and `ferry` — already the closest pair at **ΔE 12.5** and the very pair #8 said
- * colour has to separate — collapse to **6.1**; and a mid-dark tinted casing separates from the
- * ground *less* well than a flat dark one (**ΔE 34.4 against 43.4** at the weakest pairing). So the
- * neutral is both more visible and free: it leaves every Mode's ink exactly where #8 put it, which
- * is the channel #23 is owed intact.
+ * **It carries no Mode**, which is the ruling #22 made and #23 kept: a per-Mode casing was built and
+ * measured and lost on both counts it was supposed to win, because darkening compresses a palette
+ * toward the shade. That argument now has nothing to bite on — there is one ink above it — but the
+ * conclusion survives in a stronger form: the bed is *half of what you see*, so making it the Mode's
+ * colour would have made the Mode the whole band.
  *
- * It is `PIN_RESOLVED_INK` — the Pin's own dark — rather than a new colour, so a Stop's marker and
- * the Legs running into it are edged with the same ink. A test pins them equal; nothing imports
- * across the two modules, because a Path and a Pin agreeing on a colour is not a dependency.
+ * Green rather than #22's neutral `#2f4f4f`, and it is **more** visible, not less: ΔE **52.5** against
+ * water where the neutral managed 43.4. The Diorama's own greens are pale sage, so a dark green has
+ * further to fall than a dark teal does.
+ *
+ * **The cost, stated because a test used to forbid it:** this is no longer `PIN_RESOLVED_INK`. #22
+ * deliberately made the Path's edge and the Pin's dark the same ink so "a Stop's marker and the Legs
+ * running into it are edged with the same dark", and pinned the two equal in a test. They are now
+ * ΔE 15.1 apart — close, deliberately not identical, and nobody has judged whether the Pin should
+ * follow the Path into green. That is available and unowned.
  */
-export const PATH_CASING_INK = '#2f4f4f'
+export const PATH_CASING_INK = '#22402c'
+
+/**
+ * The side wall — the shade the band's own thickness casts, one step darker than the bed.
+ *
+ * Three tones is what makes a band read as an object rather than as ink: `PATH_INK` is the lit top
+ * face, `PATH_CASING_INK` is the edge, and this is the side catching no light. ΔE 13.4 from the bed —
+ * close on purpose, because a wall that contrasts with its own edge reads as a second line rather
+ * than as the same object turning away from the light.
+ */
+export const PATH_WALL_INK = '#13251a'
+
+/**
+ * How far down-screen the wall is pushed, in pixels.
+ *
+ * **`line-translate-anchor: 'viewport'`, and that is the whole reason this works.** `line-offset` and
+ * a map-anchored translate both move a line relative to **its own direction**, so on a great circle
+ * the wall swaps sides as the bearing sweeps and one Path comes out lit from the left at one end and
+ * the right at the other. Anchored to the viewport the shade always falls the same way down the
+ * screen, which is what a single light source means.
+ *
+ * 3 px, and it reads as a bevel more than a wall — which at 7 px wide is close to the honest ceiling.
+ * Pushed to 5–6 px it is unmistakably an object and starts to look doubled at trip zoom, where
+ * Koh Kradan → Koh Mook is **5.1 px long**: a 6 px drop on a 5.1 px Leg is longer than the Leg.
+ */
+export const PATH_WALL_DROP_PX = 3
 
 /**
  * One source and one layer for every Path, whatever its Mode.
@@ -333,6 +380,7 @@ export const PATH_CASING_INK = '#2f4f4f'
 export const PATH_SOURCE_ID = 'paths'
 export const PATH_LAYER_ID = 'paths'
 export const PATH_CASING_LAYER_ID = 'paths-casing'
+export const PATH_WALL_LAYER_ID = 'paths-wall'
 
 /**
  * Where the Paths go in the layer order: above every land and water fill, below the place labels.
@@ -343,40 +391,60 @@ export const PATH_CASING_LAYER_ID = 'paths-casing'
  */
 export const PATH_BEFORE = 'airport'
 
-/** `match` on the feature's Mode, with the neutral `unknown` styling as the fallback branch. */
-const byMode = <T>(
-  of: (mode: DrawnMode) => T,
-): DataDrivenPropertyValueSpecification<T> =>
+/**
+ * The core's ink: `PATH_INK` for every Mode, `PATH_UNKNOWN_INK` for a Leg that has none.
+ *
+ * A two-branch `match` rather than #8's seven. Kept data-driven rather than made a flat colour so the
+ * one distinction the Path still draws — decided against undecided — is in the layer's paint where a
+ * reader will find it, instead of being a filter on a second layer.
+ */
+const coreInk = (): DataDrivenPropertyValueSpecification<string> =>
   [
     'match',
     ['get', 'mode'],
-    ...DRAWN_MODES.filter((mode) => mode !== 'unknown').flatMap((mode) => [
-      mode,
-      of(mode),
-    ]),
-    of('unknown'),
-  ] as unknown as DataDrivenPropertyValueSpecification<T>
+    'unknown',
+    PATH_UNKNOWN_INK,
+    PATH_INK,
+  ] as unknown as DataDrivenPropertyValueSpecification<string>
 
 /**
- * The dark edge under every Path. Same source, same geometry, one layer earlier.
+ * The side wall: the same geometry, the same width as the bed, pushed down-screen.
  *
- * **Solid, and that is the decision** — not a dashed outline tracing each dash. An outline was built
- * and rejected on the picture: the real trip's dashes are ~6 px long at this width, so a 1.5 px
- * border on every side of each one is most of the mark, and the band comes out a row of dark dots
- * with the Mode's ink squeezed out of the middle. Solid, the casing fills the dash gaps instead, and
- * the Leg reads as one continuous object with a rhythm in it rather than as a dotted line.
+ * Drawn **first**, so it ends up under everything — the bottom few pixels are all that shows, and that
+ * sliver is the band's own thickness. It costs a third draw of one geometry: no second source, no
+ * second copy of the vertices, and no three.js pass, so [ADR 0006](../../docs/adr/0006-a-path-is-a-line-layer-never-three-js.md)
+ * is untouched. The prototype's alternative — a real `fill-extrusion` prism — gives better volume and
+ * gives up the drape, the dash, screen-space width, and 41 of 74 crossings
+ * ([ADR 0012](../../docs/adr/0012-a-path-is-one-green-solid-and-carries-no-mode.md)).
+ */
+export const pathWallLayer = (): LineLayerSpecification => ({
+  id: PATH_WALL_LAYER_ID,
+  type: 'line',
+  source: PATH_SOURCE_ID,
+  layout: { 'line-cap': 'butt', 'line-join': 'round' },
+  paint: {
+    'line-width': PATH_CASING_PX,
+    'line-color': PATH_WALL_INK,
+    'line-translate': [0, PATH_WALL_DROP_PX],
+    'line-translate-anchor': 'viewport',
+  },
+})
+
+/**
+ * The bed under every Path. Same source, same geometry, one layer above the wall.
  *
- * Filling the gaps is what pays for #22's hardest case. Koh Kradan → Koh Mook is **5.1 px long** at
- * the opening camera and carries **0.6 of a dash cycle** — less than one dash, so whether it drew at
- * all was a matter of phase. Cased, it is 5.1 px of solid ink whatever the dash does.
+ * **Solid, and it always was** — #22 built a dashed outline tracing each dash and rejected it on the
+ * picture. That decision now costs nothing to keep, because the core above is solid too: where #22's
+ * casing existed to *fill the dash gaps* and carry a 5.1 px Leg through them, there are no gaps left.
+ * What the bed does now is give the band an edge, and give the wall something to be one step darker
+ * than.
  *
- * No `line-opacity` and no exemption for a Mode-less Leg, which is worth saying because the obvious
- * reading of #8 is that an undecided Leg should stay faint. It should not: a Leg is **derived from
- * Stop order**, so its *existence* is certain even when its Mode is not, and the casing is what says
- * a movement happens here. The muted dotted core above still says nobody has decided how.
+ * No exemption for a Mode-less Leg. A Leg is **derived from Stop order**, so its existence is certain
+ * even when its Mode is not; the bed says a movement happens here and the drained core above says
+ * nobody has decided how.
  *
- * `butt` caps, matching the core: round caps would overhang each end by half the width, which at the
- * trip view is ~11 km of Path the Itinerary does not contain.
+ * `butt` caps, matching the core and the wall: round caps would overhang each end by half the width,
+ * which at the trip view is ~11 km of Path the Itinerary does not contain.
  */
 export const pathCasingLayer = (): LineLayerSpecification => ({
   id: PATH_CASING_LAYER_ID,
@@ -389,6 +457,18 @@ export const pathCasingLayer = (): LineLayerSpecification => ({
   },
 })
 
+/**
+ * The lit top face — one green, solid, and **no `line-dasharray` at all**.
+ *
+ * The absence is the decision (#23). A dash was #8's second channel and half of how a Mode announced
+ * itself without a legend; it is gone, and with it any way for the Path to say which Leg is which. See
+ * `PATH_INK`.
+ *
+ * Worth knowing for anyone re-adding one: a cross-faded property has to be present in a layer's paint
+ * **when the layer is added**. `setPaintProperty('line-dasharray', …)` on a layer created without one
+ * throws inside MapLibre's render loop rather than at the call site, every frame thereafter, several
+ * stack frames from anything you wrote. Adding a dash back means removing and re-adding this layer.
+ */
 export const pathLayer = (): LineLayerSpecification => ({
   id: PATH_LAYER_ID,
   type: 'line',
@@ -396,15 +476,10 @@ export const pathLayer = (): LineLayerSpecification => ({
   layout: { 'line-cap': 'butt', 'line-join': 'round' },
   paint: {
     'line-width': PATH_WIDTH_PX,
-    'line-color': byMode((mode) => MODE_STYLE[mode].ink),
-    // `literal` because a bare array inside a `match` branch would be read as another expression.
-    'line-dasharray': byMode(
-      (mode) => ['literal', [...MODE_STYLE[mode].dash]] as unknown as number[],
-    ),
+    'line-color': coreInk(),
   },
 })
 
-/** Every Path as one feature collection, each feature carrying the Mode both paint properties read. */
 export const pathData = (paths: readonly DrawnPath[]): FeatureCollection => ({
   type: 'FeatureCollection',
   features: paths.map((path) => ({

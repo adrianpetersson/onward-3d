@@ -9,6 +9,7 @@ import {
   pathCasingLayer,
   pathData,
   pathLayer,
+  pathWallLayer,
   pathsOf,
 } from './path'
 import {
@@ -43,7 +44,7 @@ import { buildVehicle } from './vehicle'
  * ## Layer order is load-bearing
  *
  * Paths go in **under** the place labels (`PATH_BEFORE`), so a Path never runs through the name of
- * the island it arrives at, and the Path's own casing goes under the Path. Pins go in **over** the
+ * the island it arrives at, and the Path's own bed and wall go under it. Pins go in **over** the
  * model layer, which is added before this module runs — so a Pin draws on top of the Stay Marker
  * beneath it, which is exactly #9's ruling and exactly what #11 proved possible.
  *
@@ -72,9 +73,13 @@ export function drawItinerary(map: MapLibreMap, models: ModelLayer): Drawing {
     type: 'geojson',
     data: { type: 'FeatureCollection', features: [] },
   })
-  // Casing first: `addLayer` inserts immediately before its anchor, so adding both against
-  // `PATH_BEFORE` in this order leaves the core drawn over its own edge. Two layers off one source —
-  // the geometry is uploaded once and the casing costs a second draw of it, not a second copy.
+  // Wall first: `addLayer` inserts immediately before its anchor, so adding all three against
+  // `PATH_BEFORE` in this order leaves the core drawn over its own edge. Three layers off one source —
+  // the geometry is uploaded once and each extra layer costs a second draw of it, not a second copy.
+  //
+  // Wall, then bed, then core: the wall is translated down-screen (#23), so all that shows of it is the
+  // sliver below the bed, and that sliver is the band's own thickness.
+  map.addLayer(pathWallLayer(), PATH_BEFORE)
   map.addLayer(pathCasingLayer(), PATH_BEFORE)
   map.addLayer(pathLayer(), PATH_BEFORE)
 

@@ -11,8 +11,13 @@ import {
   DRAWN_MODES,
   greatCircleDistanceM,
   interpolate,
-  MODE_STYLE,
+  PATH_INK,
+  PATH_UNKNOWN_INK,
+  PATH_WALL_DROP_PX,
+  PATH_WALL_INK,
   PATH_CASING_INK,
+  PATH_WALL_LAYER_ID,
+  pathWallLayer,
   PATH_CASING_LAYER_ID,
   PATH_CASING_PX,
   PATH_WIDTH_PX,
@@ -326,13 +331,34 @@ describe('pathsOf', () => {
   })
 })
 
-describe('MODE_STYLE', () => {
-  it('gives every Mode its own ink and its own dash', () => {
-    const inks = DRAWN_MODES.map((mode) => MODE_STYLE[mode].ink)
-    const dashes = DRAWN_MODES.map((mode) => MODE_STYLE[mode].dash.join())
+describe('the Path carries one ink and no Mode', () => {
+  it('draws every Mode in the same green — the distinction is gone on purpose (#23)', () => {
+    // The inverse of what #8 asserted here, and the inverse is the ruling: a Leg no longer says how
+    // it is travelled. Adrian, from the prototype's own sheets: "the dashes are ugly i want it all
+    // green in one color."
+    const expression = pathLayer().paint?.['line-color'] as unknown[]
+    const modes = DRAWN_MODES.filter((mode) => mode !== 'unknown')
 
-    expect(new Set(inks).size).toBe(DRAWN_MODES.length)
-    expect(new Set(dashes).size).toBe(DRAWN_MODES.length)
+    // Every real Mode falls through to the fallback branch rather than getting a label of its own.
+    for (const mode of modes) expect(expression).not.toContain(mode)
+    expect(expression.at(-1)).toBe(PATH_INK)
+  })
+
+  it('keeps one distinction: a Leg with no Mode is drained, not absent', () => {
+    // Not a Mode but a Leg that has one and has not been told which (#10). #8 was deliberate that the
+    // movement is real even when how you make it is not decided, and one flat green would take that
+    // back — an undecided Leg would be indistinguishable from a booked ferry.
+    const expression = pathLayer().paint?.['line-color'] as unknown[]
+
+    expect(expression).toContain('unknown')
+    expect(expression).toContain(PATH_UNKNOWN_INK)
+    expect(PATH_UNKNOWN_INK).not.toBe(PATH_INK)
+  })
+
+  it('has no dash at all — the absence is the decision', () => {
+    // A cross-faded property must be present when the layer is added, so re-adding a dash later means
+    // removing and re-adding the layer. `setPaintProperty` on it throws inside the render loop.
+    expect(pathLayer().paint?.['line-dasharray']).toBeUndefined()
   })
 })
 
@@ -365,25 +391,14 @@ describe('pathData', () => {
 })
 
 describe('pathLayer', () => {
-  it('matches on the Mode for both the ink and the dash', () => {
-    // One layer for every Mode, which is only possible because `line-dasharray` is data-driven in
-    // MapLibre 6.3.0 — a `CrossFadedDataDrivenProperty`. Four Modes with four dashes and four inks
-    // were rendered from a single layer before this was collapsed from seven.
-    const { paint } = pathLayer()
-
-    for (const property of ['line-color', 'line-dasharray'] as const) {
-      const expression = paint?.[property] as unknown[]
-      expect(expression[0]).toBe('match')
-      expect(expression[1]).toEqual(['get', 'mode'])
-    }
-  })
-
-  it('falls back to the neutral unknown styling rather than to a Mode', () => {
+  it('still matches on the feature, because one distinction survives', () => {
+    // Two branches where #8 had seven. Kept data-driven rather than made a flat colour so that
+    // decided-against-undecided lives in the layer's paint, where a reader will find it.
     const expression = pathLayer().paint?.['line-color'] as unknown[]
 
-    // The last branch of a `match` is the fallback, and `unknown` must never appear as a label.
-    expect(expression.at(-1)).toBe(MODE_STYLE.unknown.ink)
-    expect(expression).not.toContain('unknown')
+    expect(expression[0]).toBe('match')
+    expect(expression[1]).toEqual(['get', 'mode'])
+    expect(expression).toHaveLength(5)
   })
 })
 
@@ -484,23 +499,97 @@ describe('a Path separates from the ground it lies on', () => {
     expect(GROUNDS.map((g) => g.id)).toContain('background')
   })
 
-  it.each(DRAWN_MODES)('%s clears the floor over every ground', (mode) => {
+  it.each([
+    ['the Path', PATH_INK],
+    ['a Mode-less Leg', PATH_UNKNOWN_INK],
+  ])('%s clears the floor over every ground', (_what, ink) => {
     for (const ground of GROUNDS) {
       expect(
-        bandAgainst(MODE_STYLE[mode].ink, ground.rgb),
-        `${mode} over ${ground.id}`,
+        bandAgainst(ink, ground.rgb),
+        `${ink} over ${ground.id}`,
       ).toBeGreaterThanOrEqual(SEPARATION_FLOOR)
     }
   })
 
-  it('is the casing that earns it, and boat over water is the proof', () => {
+  it('clears it on the green alone, without the bed having to rescue it', () => {
+    // The difference from #22, and the reason #23's ruling cost nothing. #8's `boat` was ΔE 14.0 over
+    // water — teal on teal, on three of the real trip's nine Legs — and only the casing made the band
+    // readable. One green needs no rescuing: it is over the floor against every ground by itself.
+    for (const ground of GROUNDS) {
+      expect(
+        deltaE(rgbOf(PATH_INK), ground.rgb),
+        `${PATH_INK} unaided over ${ground.id}`,
+      ).toBeGreaterThanOrEqual(SEPARATION_FLOOR)
+    }
+  })
+
+  it('is greener than the ground even where the ground is green', () => {
+    // The worry #23 raised out loud: "a green Path sits on top of moss terrain rather than against
+    // it." It does not, because the Diorama's greens are pale desaturated sage.
+    for (const id of ['park', 'landcover_wood']) {
+      const ground = GROUNDS.find((g) => g.id === id)
+      expect(ground, `${id} is missing from the style`).toBeDefined()
+      expect(
+        deltaE(rgbOf(PATH_INK), ground!.rgb),
+        `${PATH_INK} over ${id}`,
+      ).toBeGreaterThanOrEqual(SEPARATION_FLOOR)
+    }
+  })
+
+  it('separates the bed from the ground better than #22’s neutral did', () => {
     const water = GROUNDS.find((g) => g.id === 'water')!.rgb
 
-    // The measurement #22 was filed on: teal ink on teal sea, on three of the real trip's nine Legs.
-    expect(deltaE(rgbOf(MODE_STYLE.boat.ink), water)).toBeLessThan(15)
+    // ΔE 52.5 against 43.4. Going green made the bed *more* visible, not less.
+    expect(deltaE(rgbOf(PATH_CASING_INK), water)).toBeGreaterThan(
+      deltaE(rgbOf(PIN_RESOLVED_INK), water),
+    )
+  })
+})
 
-    // And the same Leg, cased. Delete the casing and the assertion above becomes the whole story.
-    expect(bandAgainst(MODE_STYLE.boat.ink, water)).toBeGreaterThan(40)
+describe('pathWallLayer', () => {
+  it('is anchored to the viewport, or the wall swaps sides along a great circle', () => {
+    // The trap this exists to prevent. `line-offset` and a map-anchored translate both move a line
+    // relative to its own direction, so a Path that curves comes out lit from the left at one end and
+    // the right at the other. A single light source means a fixed screen direction.
+    const { paint } = pathWallLayer()
+
+    expect(paint?.['line-translate-anchor']).toBe('viewport')
+    expect(paint?.['line-translate']).toEqual([0, PATH_WALL_DROP_PX])
+  })
+
+  it('drops downward only, so the light is always overhead', () => {
+    const [x, y] = pathWallLayer().paint?.['line-translate'] as [number, number]
+
+    expect(x).toBe(0)
+    expect(y).toBeGreaterThan(0)
+  })
+
+  it('is the darkest of the three tones, and closest to the bed', () => {
+    // Three tones is what makes a band an object: lit top, edge, shaded side. The wall sits near the
+    // bed on purpose — a wall that contrasts with its own edge reads as a second line.
+    const wall = deltaE(rgbOf(PATH_WALL_INK), rgbOf(PATH_CASING_INK))
+    const core = deltaE(rgbOf(PATH_INK), rgbOf(PATH_CASING_INK))
+
+    expect(wall).toBeLessThan(core)
+  })
+
+  it('is as wide as the bed and drawn from the same source, one id of its own', () => {
+    expect(pathWallLayer().paint?.['line-width']).toBe(PATH_CASING_PX)
+    expect(pathWallLayer().source).toBe(pathLayer().source)
+    expect(pathWallLayer().id).toBe(PATH_WALL_LAYER_ID)
+    expect(pathWallLayer().id).not.toBe(PATH_CASING_LAYER_ID)
+  })
+
+  it('never overhangs its ends, matching the bed and the core', () => {
+    // Round caps overhang by half the width, which at the trip view is ~11 km of Path the Itinerary
+    // does not contain.
+    expect(pathWallLayer().layout?.['line-cap']).toBe('butt')
+  })
+
+  it('stays shorter than the shortest Leg the real trip draws', () => {
+    // Koh Kradan → Koh Mook is 5.1 px long at the app's own opening camera. A drop longer than the Leg
+    // would read as two marks rather than one object, which is why this is 3 and not 6.
+    expect(PATH_WALL_DROP_PX).toBeLessThan(5.1)
   })
 })
 
@@ -520,10 +609,15 @@ describe('pathCasingLayer', () => {
     expect(PATH_WIDTH_PX / PATH_CASING_PX).toBeGreaterThan(0.5)
   })
 
-  it('shares the Pin’s ink, so a Stop and the Legs into it are edged alike', () => {
-    // Pinned rather than imported: agreeing on a colour is not a dependency, and drifting apart
-    // silently is exactly what a comment saying "the same as the Pin" would allow.
-    expect(PATH_CASING_INK).toBe(PIN_RESOLVED_INK)
+  it('no longer shares the Pin’s ink, and that is a loosening rather than a drift', () => {
+    // #22 made these two equal so "a Stop's marker and the Legs running into it are edged with the
+    // same dark", and pinned it here. #23 took the Path's bed into green and left the Pin where it
+    // was, because the ruling was about the Path. They are ΔE 15.1 apart — close, deliberately not
+    // identical, and whether the Pin should follow is unowned.
+    expect(PATH_CASING_INK).not.toBe(PIN_RESOLVED_INK)
+    expect(
+      deltaE(rgbOf(PATH_CASING_INK), rgbOf(PIN_RESOLVED_INK)),
+    ).toBeLessThan(20)
   })
 
   it('draws from the same source as the core, so the two can never disagree', () => {
