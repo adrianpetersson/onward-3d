@@ -77,6 +77,7 @@ const PALETTE = {
   'green-bed': { inks: SHIPPED, darks: ['#22402c', '#13251a'] },
   'one-green': { inks: ONE_GREEN, darks: ['#22402c', '#13251a'] },
   'green-ramp': { inks: RAMP, darks: ['#22402c', '#13251a'] },
+  'green-solid': { inks: ONE_GREEN, darks: ['#22402c', '#13251a'] },
   extruded: { inks: ONE_GREEN, darks: [] },
 }
 

@@ -37,6 +37,7 @@ const VARIANTS = [
   ['green-bed', 'GREEN BED - MODE ON TOP'],
   ['one-green', 'ONE GREEN - COLOUR SPENT'],
   ['green-ramp', 'GREEN RAMP - ONE FAMILY'],
+  ['green-solid', 'GREEN SOLID - ONE COLOUR, NO DASH'],
   ['extruded', 'EXTRUDED - NO DASH'],
 ]
 

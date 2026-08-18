@@ -24,7 +24,7 @@ OUT = ROOT / "docs" / "paths-volume" / "measure"
 SETTLE_MS = 8000
 MOVE_MS = 3800
 
-VARIANTS = ["shipped", "wall", "green-bed", "one-green", "green-ramp", "extruded"]
+VARIANTS = ["shipped", "wall", "green-bed", "one-green", "green-ramp", "green-solid", "extruded"]
 
 CAMERAS = {
     "load": None,

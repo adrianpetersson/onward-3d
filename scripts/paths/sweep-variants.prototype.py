@@ -26,7 +26,7 @@ OUT = ROOT / "docs" / "paths-volume"
 SETTLE_MS = 8000
 MOVE_MS = 3800
 
-VARIANTS = ["shipped", "wall", "green-bed", "one-green", "green-ramp", "extruded"]
+VARIANTS = ["shipped", "wall", "green-bed", "one-green", "green-ramp", "green-solid", "extruded"]
 
 # Hide the map's own chrome, the Itinerary panel, and the prototype's variant bar. Map only, which is
 # ADR 0011's convention (`docs/casing/`) — the thing being judged is the Path, and the panel covers

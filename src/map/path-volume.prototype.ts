@@ -45,7 +45,13 @@ import {
 
 /** Every variant's key. `shipped` is the control — exactly what is on `main`. */
 export type VariantKey =
-  'shipped' | 'wall' | 'green-bed' | 'one-green' | 'green-ramp' | 'extruded'
+  | 'shipped'
+  | 'wall'
+  | 'green-bed'
+  | 'one-green'
+  | 'green-ramp'
+  | 'green-solid'
+  | 'extruded'
 
 export const VARIANT_KEYS: VariantKey[] = [
   'shipped',
@@ -53,6 +59,7 @@ export const VARIANT_KEYS: VariantKey[] = [
   'green-bed',
   'one-green',
   'green-ramp',
+  'green-solid',
   'extruded',
 ]
 
@@ -168,9 +175,21 @@ const casingLayer = (
   paint: { 'line-width': PATH_CASING_PX, 'line-color': ink },
 })
 
-/** The core — the lit top face. `ink` is a `match` on the Mode, or a single colour. */
+/**
+ * The core — the lit top face. `ink` is a `match` on the Mode, or a single colour.
+ *
+ * `solid` drops the dash entirely. Worth noting what that *buys*, because the dash was not only a
+ * cost: #22's hardest case is Koh Kradan → Koh Mook at **5.1 px long**, carrying 0.6 of one dash
+ * cycle, so whether it drew at all was a matter of phase. A solid core is 5.1 px of ink unconditionally
+ * — the problem ADR 0011 solved with a casing stops existing rather than being covered up.
+ *
+ * What it costs is the Mode. #8 established colour and dash as the two channels; a solid single-ink
+ * band spends both, and the Mode then lives only on the Vehicle standing on the Path — which #8
+ * deliberately culls at region and trip zoom, where a Leg is smallest.
+ */
 const coreLayer = (
   ink: DataDrivenPropertyValueSpecification<string> | string,
+  solid = false,
 ): LineLayerSpecification => ({
   id: 'paths',
   type: 'line',
@@ -179,7 +198,7 @@ const coreLayer = (
   paint: {
     'line-width': PATH_WIDTH_PX,
     'line-color': ink,
-    'line-dasharray': dash,
+    ...(solid ? {} : { 'line-dasharray': dash }),
   },
 })
 
@@ -403,6 +422,24 @@ export const VARIANTS: Record<VariantKey, Variant> = {
       wallLayer(GREEN_WALL_INK),
       casingLayer(GREEN_CASING_INK),
       coreLayer(byMode((m) => GREEN_RAMP[m])),
+    ],
+  },
+
+  /**
+   * **Adrian's ruling, 18 Aug 2026: "the dashes are ugly i want it all green in one color".**
+   *
+   * One green, solid, on the dark green bed and wall — so the band is one colour and its own shading,
+   * and nothing else. Both channels #8 named are spent deliberately: the Mode is no longer on the
+   * Path at all, and lives on the Vehicle standing on it and in the sidebar.
+   */
+  'green-solid': {
+    key: 'green-solid',
+    name: 'Green solid — one colour, no dash',
+    spends: 'BOTH channels · the Mode leaves the Path entirely',
+    lines: [
+      wallLayer(GREEN_WALL_INK),
+      casingLayer(GREEN_CASING_INK),
+      coreLayer(ONE_GREEN, true),
     ],
   },
 

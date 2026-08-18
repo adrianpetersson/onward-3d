@@ -7,14 +7,41 @@ Itinerary, 1400 × 900 against `pnpm dev`, map only (the Itinerary panel is hidd
 Flip them by hand at `http://localhost:3000/?variant=<key>`, or with the arrow keys on the bar at the
 bottom of the screen.
 
-| key          | what it is                                                                 | what it spends                     |
-| ------------ | -------------------------------------------------------------------------- | ---------------------------------- |
-| `shipped`    | the control — 7 px casing, 4 px dashed Mode core                           | nothing                            |
-| `wall`       | a third line pushed 3 px down-screen as a side wall                        | nothing                            |
-| `green-bed`  | the bed and wall go green, the Mode keeps its own ink and dash             | nothing                            |
-| `one-green`  | the ticket's own reading — six Modes to one green, dash left to carry them | **the colour channel**             |
-| `green-ramp` | one hue family, every Mode its own green                                   | nothing                            |
-| `extruded`   | `fill-extrusion` — a real prism with a lit top and a shaded side           | **the dash, the drape, and width** |
+| key           | what it is                                                                 | what it spends                     |
+| ------------- | -------------------------------------------------------------------------- | ---------------------------------- |
+| `shipped`     | the control — 7 px casing, 4 px dashed Mode core                           | nothing                            |
+| `wall`        | a third line pushed 3 px down-screen as a side wall                        | nothing                            |
+| `green-bed`   | the bed and wall go green, the Mode keeps its own ink and dash             | nothing                            |
+| `one-green`   | the ticket's own reading — six Modes to one green, dash left to carry them | **the colour channel**             |
+| `green-ramp`  | one hue family, every Mode its own green                                   | nothing                            |
+| `green-solid` | **the one that won** — one green, solid, no dash                           | **both channels**                  |
+| `extruded`    | `fill-extrusion` — a real prism with a lit top and a shaded side           | **the dash, the drape, and width** |
+
+## The ruling
+
+**`green-solid`.** Adrian, 18 Aug 2026, from these sheets: _"the dashes are ugly i want it all green in
+one color."_ One green, solid, on the dark green bed and wall — so the band is one colour and its own
+shading, and nothing else.
+
+That spends **both** of #8's channels, which is more than the recommendation asked for: `green-ramp`
+kept the Mode by giving each one its own green, and was declined on taste. The consequence is recorded
+rather than softened — **the Mode is no longer on the Path.** It lives on the Vehicle standing on the
+Path, and #8 culls the Vehicle at region and trip zoom, so at the app's own opening camera nothing says
+which Leg is which. Three boat Legs and the Langkawi ferry are one object.
+
+What it costs nothing in is legibility, and it fixes #22's hardest case outright:
+
+|                                     | shipped                                    | `green-solid`              |
+| ----------------------------------- | ------------------------------------------ | -------------------------- |
+| unambiguous crossings, load frame   | 73/74                                      | **73/74**                  |
+| unambiguous crossings, island chain | 19/19                                      | **19/19**                  |
+| worst Leg's median, load frame      | ΔE 40.8                                    | **ΔE 58.1**                |
+| Koh Kradan → Koh Mook, 5.1 px long  | 0.6 of a dash cycle, drew by luck of phase | **solid, unconditionally** |
+
+The dash was not only a cost: it was also what made a 5.1 px Leg a matter of phase, which is what
+ADR 0011's casing existed to cover up. Solid, the problem stops existing rather than being covered.
+
+Landed on `main` as ADR 0012.
 
 ## The headline
 
