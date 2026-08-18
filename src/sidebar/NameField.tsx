@@ -21,7 +21,7 @@
  * turned up. Re-placing a Stop is the coordinate box's job, which is where it belongs.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   MIN_QUERY,
@@ -49,6 +49,7 @@ export function NameField({
   value,
   placeholder,
   searchable,
+  autoFocus,
   what,
   onChange,
   onFind,
@@ -59,6 +60,8 @@ export function NameField({
   placeholder?: string
   /** False once the thing has a coordinate — see the note above. */
   searchable: boolean
+  /** Set where typing the name is unambiguously the next act — a Stop that has none yet (#27). */
+  autoFocus?: boolean
   /** Named in the copy, so each message says what it is about to place. */
   what: string
   onChange: (value: string | null) => void
@@ -168,6 +171,26 @@ export function NameField({
     onFind(find)
   }
 
+  /**
+   * Where the pointer last was, so a row claims the highlight only when the pointer *moves* — never
+   * because the list rendered or scrolled underneath a parked one.
+   *
+   * The parked case is not hypothetical, and it placed three Stops on the wrong continent (#27): the
+   * ＋ Add-a-stop click leaves the cursor over the ribbon, the card opens, the traveller types and the
+   * list appears under the stationary cursor — Chromium recomputes hover on layout change and fires
+   * `mouseenter` with no movement at all, so whichever row happened to open under the mouse stole
+   * `active` from the top-ranked result, and Enter placed `Koh Lipe` in Kosovo. Coordinates are
+   * compared instead of trusting the event, because Chromium also *synthesises* mousemove after
+   * scroll — same event name, same parked position — and a synthetic move carries the same
+   * coordinates, so it filters itself out here.
+   */
+  const pointer = useRef<{ x: number; y: number } | null>(null)
+  const pointerMovedTo = (event: React.MouseEvent): boolean => {
+    const was = pointer.current
+    pointer.current = { x: event.clientX, y: event.clientY }
+    return was !== null && (was.x !== event.clientX || was.y !== event.clientY)
+  }
+
   return (
     <>
       <Field label={label}>
@@ -176,6 +199,7 @@ export function NameField({
           value={value ?? ''}
           placeholder={placeholder}
           autoComplete="off"
+          autoFocus={autoFocus}
           onChange={(event) => {
             setTyping(true)
             onChange(event.target.value || null)
@@ -227,7 +251,9 @@ export function NameField({
                       event.preventDefault()
                       pick(find)
                     }}
-                    onMouseEnter={() => setActive(index)}
+                    onMouseMove={(event) => {
+                      if (pointerMovedTo(event)) setActive(index)
+                    }}
                     className={`block w-full px-2 py-1.5 text-left text-[12px] ${
                       index === active ? 'bg-black/[0.06]' : ''
                     }`}

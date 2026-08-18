@@ -167,6 +167,9 @@ export function StopCard({
             // Once it stands somewhere, this is a plain text field again: renaming a placed Stop must
             // never be able to move it.
             searchable={!placed}
+            // A nameless Stop's card opens onto its name — mostly this is the card the ＋ button just
+            // made, and the click that made it should land where the typing starts (#27).
+            autoFocus={!stop.name}
             onChange={(v) => edit({ name: v ?? '' })}
             // The name stays exactly as typed. Only the position and the size are taken.
             onFind={(find) =>

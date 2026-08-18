@@ -13,8 +13,10 @@
 
 import { useCallback, useState } from 'react'
 
+import { newStop } from '../itinerary/create'
 import {
   dateFloor,
+  legUntouched,
   orderConflicts,
   staleLegs,
   tripEnd,
@@ -59,6 +61,17 @@ export function Sidebar({
 
   const toggle = (key: string) =>
     setExpanded((current) => (current === key ? null : key))
+
+  /*
+   * The Stop is made here rather than in the reducer so its card can open in the same click — adding
+   * a Stop lands the traveller in its name field, not on a collapsed row reading "Untitled stop"
+   * that has to be found and clicked before anything can be typed (#27).
+   */
+  const addStop = (after: number) => {
+    const created = newStop()
+    dispatch({ type: 'insert-stop', after, stop: created })
+    setExpanded(created.id)
+  }
 
   const commit = () => {
     // Both synchronous, and both before anything is awaited: the draft is committed and the map
@@ -143,18 +156,33 @@ export function Sidebar({
 
         {draft.stops.map((stop, i) => (
           <div key={stop.id}>
-            <div className="py-1 pl-[26px]">
-              <LegCard
-                leg={stop.inbound}
-                target={stop.id}
-                label={stop.name ? `to ${stop.name}` : 'to this stop'}
-                open={expanded === `leg:${stop.id}`}
-                onToggle={() => toggle(`leg:${stop.id}`)}
-                dirty={false}
-                stale={stale.get(stop.id) ?? null}
-                dispatch={dispatch}
-              />
-            </div>
+            {/*
+             * The Leg reads before its Stop because that is the journey's order (ADR 0003 stores it
+             * on the Stop it arrives at) — but until the Stop has a name, a row asking "no mode yet —
+             * to this stop" asks *how you get there* before the traveller has said *where*, on every
+             * Stop, nine times over (#27). So an untouched Leg into an unnamed Stop collapses to the
+             * bare connector, and the row appears when either end of that condition does: name the
+             * Stop and its Leg offers itself, or a Leg holding anything is never hidden — a fold that
+             * showed no sign of a filled carrier would read as having lost it (#30).
+             */}
+            {!stop.name && legUntouched(stop.inbound) ? (
+              <div className="py-1 pl-[26px]">
+                <div className="h-2.5 border-l-2 border-dashed border-black/15" />
+              </div>
+            ) : (
+              <div className="py-1 pl-[26px]">
+                <LegCard
+                  leg={stop.inbound}
+                  target={stop.id}
+                  label={stop.name ? `to ${stop.name}` : 'to this stop'}
+                  open={expanded === `leg:${stop.id}`}
+                  onToggle={() => toggle(`leg:${stop.id}`)}
+                  dirty={false}
+                  stale={stale.get(stop.id) ?? null}
+                  dispatch={dispatch}
+                />
+              </div>
+            )}
 
             <StopCard
               stop={stop}
@@ -175,7 +203,7 @@ export function Sidebar({
 
             <div className="group/gap relative h-4">
               <button
-                onClick={() => dispatch({ type: 'insert-stop', after: i })}
+                onClick={() => addStop(i)}
                 title="Insert a stop here"
                 className="absolute top-0 left-0 hidden size-5 items-center justify-center rounded-full border border-black/15 bg-white text-[11px] text-black/50 group-hover/gap:flex"
               >
@@ -187,35 +215,50 @@ export function Sidebar({
 
         {draft.stops.length === 0 ? (
           <button
-            onClick={() => dispatch({ type: 'insert-stop', after: -1 })}
+            onClick={() => addStop(-1)}
             className="mt-2 w-full rounded border border-dashed border-black/20 py-3 text-[12px] text-black/45 hover:border-black/40 hover:text-black"
           >
             ＋ Add the first stop
           </button>
         ) : (
-          <div className="pl-[26px]">
-            <LegCard
-              leg={
-                draft.returnLeg ?? {
-                  ...draft.stops[0].inbound,
-                  mode: null,
-                  booking: null,
+          <>
+            {/*
+             * Always drawn, because once a Stop exists the only other way to grow the trip is the
+             * hover-revealed ＋ hiding in a 16 px gap — a genuinely good *insert-between* affordance
+             * and an invisible way to do the thing the sidebar is for (#27). Laying a trip out is
+             * "next stop, next stop, next stop", so the door for that sits where the next Stop will
+             * go: after the last one, before the Leg home.
+             */}
+            <button
+              onClick={() => addStop(draft.stops.length - 1)}
+              className="mb-1 w-full rounded border border-dashed border-black/20 py-2 text-[12px] text-black/45 hover:border-black/40 hover:text-black"
+            >
+              ＋ Add a stop
+            </button>
+            <div className="pl-[26px]">
+              <LegCard
+                leg={
+                  draft.returnLeg ?? {
+                    ...draft.stops[0].inbound,
+                    mode: null,
+                    booking: null,
+                  }
                 }
-              }
-              target={RETURN_LEG}
-              label="home"
-              open={expanded === 'leg:return'}
-              onToggle={() => toggle('leg:return')}
-              dirty={false}
-              stale={stale.get(null) ?? null}
-              dispatch={dispatch}
-            />
-            {draft.origin && (
-              <p className="py-1 pl-4 text-[11px] text-black/45">
-                ↩ {draft.origin.name}
-              </p>
-            )}
-          </div>
+                target={RETURN_LEG}
+                label="home"
+                open={expanded === 'leg:return'}
+                onToggle={() => toggle('leg:return')}
+                dirty={false}
+                stale={stale.get(null) ?? null}
+                dispatch={dispatch}
+              />
+              {draft.origin && (
+                <p className="py-1 pl-4 text-[11px] text-black/45">
+                  ↩ {draft.origin.name}
+                </p>
+              )}
+            </div>
+          </>
         )}
       </div>
 

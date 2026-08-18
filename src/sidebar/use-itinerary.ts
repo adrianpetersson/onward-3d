@@ -29,7 +29,7 @@ export type Action =
   | { type: 'add-stay'; stopId: string }
   | { type: 'edit-stay'; stopId: string; index: number; patch: Partial<Stay> }
   | { type: 'remove-stay'; stopId: string; index: number }
-  | { type: 'insert-stop'; after: number }
+  | { type: 'insert-stop'; after: number; stop?: Stop }
   | { type: 'move-stop'; from: number; to: number }
   | { type: 'remove-stop'; id: string }
   | { type: 'save' }
@@ -121,7 +121,9 @@ export function reduce(state: State, action: Action): State {
 
     case 'insert-stop': {
       const stops = [...state.draft.stops]
-      const created = newStop()
+      // The caller may make the Stop itself when it needs the id before dispatch returns — the
+      // sidebar opens the new card so its name field is where the traveller lands (#27).
+      const created = action.stop ?? newStop()
       stops.splice(action.after + 1, 0, created)
       return touch(created.id, { ...state.draft, stops })
     }

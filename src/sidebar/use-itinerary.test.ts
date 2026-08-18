@@ -163,6 +163,18 @@ describe('inserting and removing', () => {
     expect(inserted.draft.stops[1].inbound.mode).toBeNull()
   })
 
+  it('takes the Stop the caller made, so its card can be opened by id (#27)', () => {
+    const created = newStop()
+    const inserted = run(itineraryState(tripOf('Bangkok')), {
+      type: 'insert-stop',
+      after: 0,
+      stop: created,
+    })
+
+    expect(inserted.draft.stops[1].id).toBe(created.id)
+    expect(inserted.touched.has(created.id)).toBe(true)
+  })
+
   it('takes the Stop’s Stays and inbound Leg with it when removed', () => {
     const trip = tripOf('Bangkok', 'Koh Kradan')
     const removed = run(

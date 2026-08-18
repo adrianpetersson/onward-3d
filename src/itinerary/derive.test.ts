@@ -5,6 +5,7 @@ import {
   dateFloor,
   drawingStay,
   legsOf,
+  legUntouched,
   lossOfBooking,
   lossesOfStay,
   lossesOfStop,
@@ -234,6 +235,39 @@ describe('legs', () => {
     // movement, which is the known cost, but it was not orphaned and it did not re-point silently.
     expect(moved?.leg.mode).toBe('boat')
     expect(moved?.from).toMatchObject({ name: 'Bangkok' })
+  })
+})
+
+describe('whether a Leg has ever been touched', () => {
+  it('calls a fresh Leg untouched, comparing fields rather than references', () => {
+    // `leg(null)` builds its own empty arrays and nulls — reference equality would call it touched.
+    expect(legUntouched(leg(null))).toBe(true)
+  })
+
+  it('calls a Leg touched the moment it holds anything', () => {
+    expect(legUntouched(leg('boat'))).toBe(false)
+    expect(legUntouched(leg(null, { note: 'Ask for a lower berth.' }))).toBe(
+      false,
+    )
+    expect(legUntouched(leg(null, { dayRoll: 1 }))).toBe(false)
+    expect(
+      legUntouched(
+        leg(null, { via: [{ name: 'Beijing', lng: 116, lat: 40 }] }),
+      ),
+    ).toBe(false)
+    expect(
+      legUntouched(
+        leg(null, {
+          booking: {
+            reference: '',
+            platform: null,
+            cancelBy: null,
+            contact: null,
+            detail: null,
+          },
+        }),
+      ),
+    ).toBe(false)
   })
 })
 

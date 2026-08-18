@@ -11,6 +11,7 @@
  * what `new Date('2026-12-20')` does on the wrong side of midnight — would shift it by a day.
  */
 
+import { newLeg } from './create'
 import type { Booking, Leg, Money, Place, Stay, Stop, Trip } from './model'
 
 const DAY_MS = 86_400_000
@@ -96,6 +97,22 @@ export function legsOf(trip: Trip): ResolvedLeg[] {
   }
 
   return legs
+}
+
+/**
+ * Whether nothing has ever been entered against this Leg.
+ *
+ * Field-by-field against `newLeg()` rather than a hand-kept list, so a field added to `Leg` is
+ * compared the day it exists — a list would quietly stop noticing the new field, and a Leg holding
+ * data would be treated as blank. What hangs on this is visibility: the sidebar collapses an
+ * untouched Leg out of the ribbon while its Stop is still unnamed (#27), and collapsing a *touched*
+ * one would be the fold-that-loses-a-carrier lie in one more place (#30).
+ */
+export function legUntouched(leg: Leg): boolean {
+  const blank = newLeg()
+  return (Object.keys(blank) as (keyof Leg)[]).every((key) =>
+    key === 'via' ? leg.via.length === 0 : leg[key] === blank[key],
+  )
 }
 
 /** The date a Leg departs — anchored to the Stop it arrives at, wound back over any overnight. */
