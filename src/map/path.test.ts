@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 
 import { newTrip } from '../itinerary/create'
 import type { Coord, Leg, Mode, Stop, Trip } from '../itinerary/model'
+import { PIN_RESOLVED_INK } from './pin'
+import dioramaStyle from './style/onward-positron.json'
 import {
   bearing,
   densify,
@@ -10,6 +12,11 @@ import {
   greatCircleDistanceM,
   interpolate,
   MODE_STYLE,
+  PATH_CASING_INK,
+  PATH_CASING_LAYER_ID,
+  PATH_CASING_PX,
+  PATH_WIDTH_PX,
+  pathCasingLayer,
   pathData,
   pathLayer,
   pathsOf,
@@ -377,5 +384,151 @@ describe('pathLayer', () => {
     // The last branch of a `match` is the fallback, and `unknown` must never appear as a label.
     expect(expression.at(-1)).toBe(MODE_STYLE.unknown.ink)
     expect(expression).not.toContain('unknown')
+  })
+})
+
+/* -------------------------------------------------------------------------- */
+/*  The casing                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * CIE L*a*b* ΔE76 — how far apart two colours look, rather than how far apart their bytes are.
+ *
+ * #22 was filed because a Path was invisible, and "invisible" is the one thing about this map that a
+ * unit test can actually hold: a WebGL frame is out of reach, but the two inks and the ground they
+ * lie on are all constants, and whether they separate is arithmetic. WCAG contrast is the wrong
+ * instrument here — it is a luminance ratio, and it scores `flight` coral on teal sea at 1.69 where
+ * the picture is unmistakable, because the whole difference is hue.
+ */
+const lab = (rgb: readonly number[]): number[] => {
+  const linear = rgb.map((c) => {
+    const s = c / 255
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+  })
+  const [r, g, b] = linear
+  const x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047
+  const y = 0.2126 * r + 0.7152 * g + 0.0722 * b
+  const z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883
+  const f = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116)
+  return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))]
+}
+
+const deltaE = (a: readonly number[], b: readonly number[]): number => {
+  const [l1, a1, b1] = lab(a)
+  const [l2, a2, b2] = lab(b)
+  return Math.hypot(l1 - l2, a1 - a2, b1 - b2)
+}
+
+/** Both spellings the style actually uses. Anything else throws rather than being skipped. */
+const rgbOf = (colour: string): number[] => {
+  const hex = /^#([0-9a-f]{6})$/i.exec(colour)
+  if (hex) return [0, 2, 4].map((i) => parseInt(hex[1].slice(i, i + 2), 16))
+
+  const hsl = /^hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)$/.exec(
+    colour,
+  )
+  if (!hsl) throw new Error(`unparsed style colour: ${colour}`)
+
+  const [h, s, l] = [+hsl[1] / 360, +hsl[2] / 100, +hsl[3] / 100]
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const x = c * (1 - Math.abs(((h * 6) % 2) - 1))
+  const m = l - c / 2
+  const face = Math.floor(h * 6) % 6
+  const [r, g, b] = [
+    [c, x, 0],
+    [x, c, 0],
+    [0, c, x],
+    [0, x, c],
+    [x, 0, c],
+    [c, 0, x],
+  ][face]
+  return [r, g, b].map((v) => Math.round((v + m) * 255))
+}
+
+/**
+ * Every opaque ground the Diorama paints, read out of the style rather than copied from it.
+ *
+ * Copying the palette in would make this test pass forever after somebody repaints the sea. #11
+ * chose these colours and #22's whole complaint is a relationship between them and the Path's, so
+ * the relationship is what gets pinned.
+ */
+const GROUNDS = (dioramaStyle as { layers: unknown[] }).layers
+  .map((layer) => layer as { id: string; paint?: Record<string, unknown> })
+  .flatMap((layer) => {
+    const colour =
+      layer.paint?.['background-color'] ?? layer.paint?.['fill-color']
+    return typeof colour === 'string'
+      ? [{ id: layer.id, rgb: rgbOf(colour) }]
+      : []
+  })
+
+/**
+ * The floor, and where it comes from.
+ *
+ * 25 is not a round number chosen for comfort: it is `ferry` over water at **ΔE 24.9**, the weakest
+ * pairing anybody had ever looked at and called acceptable — #15 photographed that crossing and
+ * recorded that "nothing about the crossing reads broken". Everything must now clear the worst thing
+ * previously shipped on purpose.
+ */
+const SEPARATION_FLOOR = 25
+
+/** The band is two inks, and it separates if *either* of them does. */
+const bandAgainst = (ink: string, ground: readonly number[]) =>
+  Math.max(deltaE(rgbOf(ink), ground), deltaE(rgbOf(PATH_CASING_INK), ground))
+
+describe('a Path separates from the ground it lies on', () => {
+  it('reads the Diorama’s own grounds rather than a copy of them', () => {
+    // If the style is restructured and this comes back empty, every assertion below passes vacuously.
+    expect(GROUNDS.length).toBeGreaterThanOrEqual(6)
+    expect(GROUNDS.map((g) => g.id)).toContain('water')
+    expect(GROUNDS.map((g) => g.id)).toContain('background')
+  })
+
+  it.each(DRAWN_MODES)('%s clears the floor over every ground', (mode) => {
+    for (const ground of GROUNDS) {
+      expect(
+        bandAgainst(MODE_STYLE[mode].ink, ground.rgb),
+        `${mode} over ${ground.id}`,
+      ).toBeGreaterThanOrEqual(SEPARATION_FLOOR)
+    }
+  })
+
+  it('is the casing that earns it, and boat over water is the proof', () => {
+    const water = GROUNDS.find((g) => g.id === 'water')!.rgb
+
+    // The measurement #22 was filed on: teal ink on teal sea, on three of the real trip's nine Legs.
+    expect(deltaE(rgbOf(MODE_STYLE.boat.ink), water)).toBeLessThan(15)
+
+    // And the same Leg, cased. Delete the casing and the assertion above becomes the whole story.
+    expect(bandAgainst(MODE_STYLE.boat.ink, water)).toBeGreaterThan(40)
+  })
+})
+
+describe('pathCasingLayer', () => {
+  it('is solid — a dashed casing is an outline, and an outline swallowed the ink', () => {
+    const { paint, layout } = pathCasingLayer()
+
+    expect(paint?.['line-dasharray']).toBeUndefined()
+    expect(paint?.['line-color']).toBe(PATH_CASING_INK)
+    // Not a `match`: the casing carries no hue, so it cannot compress the Modes toward each other.
+    expect(Array.isArray(paint?.['line-color'])).toBe(false)
+    expect(layout?.['line-cap']).toBe('butt')
+  })
+
+  it('is wider than the core, and leaves the core the majority of the band', () => {
+    expect(PATH_CASING_PX).toBeGreaterThan(PATH_WIDTH_PX)
+    expect(PATH_WIDTH_PX / PATH_CASING_PX).toBeGreaterThan(0.5)
+  })
+
+  it('shares the Pin’s ink, so a Stop and the Legs into it are edged alike', () => {
+    // Pinned rather than imported: agreeing on a colour is not a dependency, and drifting apart
+    // silently is exactly what a comment saying "the same as the Pin" would allow.
+    expect(PATH_CASING_INK).toBe(PIN_RESOLVED_INK)
+  })
+
+  it('draws from the same source as the core, so the two can never disagree', () => {
+    expect(pathCasingLayer().source).toBe(pathLayer().source)
+    expect(pathCasingLayer().id).toBe(PATH_CASING_LAYER_ID)
+    expect(pathCasingLayer().id).not.toBe(pathLayer().id)
   })
 })

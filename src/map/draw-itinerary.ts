@@ -6,6 +6,7 @@ import type { Anchor, ModelLayer } from './model-layer'
 import {
   PATH_BEFORE,
   PATH_SOURCE_ID,
+  pathCasingLayer,
   pathData,
   pathLayer,
   pathsOf,
@@ -42,9 +43,9 @@ import { buildVehicle } from './vehicle'
  * ## Layer order is load-bearing
  *
  * Paths go in **under** the place labels (`PATH_BEFORE`), so a Path never runs through the name of
- * the island it arrives at. Pins go in **over** the model layer, which is added before this module
- * runs — so a Pin draws on top of the Stay Marker beneath it, which is exactly #9's ruling and
- * exactly what #11 proved possible.
+ * the island it arrives at, and the Path's own casing goes under the Path. Pins go in **over** the
+ * model layer, which is added before this module runs — so a Pin draws on top of the Stay Marker
+ * beneath it, which is exactly #9's ruling and exactly what #11 proved possible.
  *
  * ## The sources are created once and emptied, never removed
  *
@@ -71,6 +72,10 @@ export function drawItinerary(map: MapLibreMap, models: ModelLayer): Drawing {
     type: 'geojson',
     data: { type: 'FeatureCollection', features: [] },
   })
+  // Casing first: `addLayer` inserts immediately before its anchor, so adding both against
+  // `PATH_BEFORE` in this order leaves the core drawn over its own edge. Two layers off one source —
+  // the geometry is uploaded once and the casing costs a second draw of it, not a second copy.
+  map.addLayer(pathCasingLayer(), PATH_BEFORE)
   map.addLayer(pathLayer(), PATH_BEFORE)
 
   map.addSource(PIN_SOURCE_ID, {

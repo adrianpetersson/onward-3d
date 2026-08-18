@@ -242,9 +242,14 @@ export function pathsOf(trip: Trip): DrawnPath[] {
  * what survives a Path being one pixel wide on the trip view, where the Vehicle standing on it is
  * far too small to read and the coral dashed line over Siberia is instantly a flight.
  *
- * Dash lengths are in multiples of the line width, which is what MapLibre measures them in. Chosen
- * against #11's palette — sand `#e8ddc4`, teal `#7fc0c4` and moss `#b7cba4` — so none of them
- * disappears into the ground or the sea.
+ * Dash lengths are in multiples of the line width, which is what MapLibre measures them in.
+ *
+ * **#8 said these were "chosen against #11's palette… so none of them disappears into the ground or
+ * the sea", and measuring them says otherwise for exactly one:** `boat` over water is **ΔE 14.0**,
+ * against `ferry`'s 24.9 over the same water and 46.9 for the next weakest pairing anywhere on the
+ * map. Teal on teal, and it is on three of the real trip's nine Legs. That is what #22 was filed
+ * about, and it is **not fixed here** — the ink is untouched, because the casing below separates the
+ * band from the ground without spending the colour channel #23 owns.
  */
 export const MODE_STYLE: Record<
   DrawnMode,
@@ -262,7 +267,59 @@ export const MODE_STYLE: Record<
 
 export const DRAWN_MODES = Object.keys(MODE_STYLE) as DrawnMode[]
 
-export const PATH_WIDTH_PX = 3
+/**
+ * The Path's two widths, and why there is only one number for each.
+ *
+ * The **core** is the Mode's own dashed ink; the **casing** is a solid line of one dark under it,
+ * two pixels wider on each side. #22 measured what a 3 px uncased line was actually doing on the
+ * real Itinerary and found three separate faults where it had reported one:
+ *
+ * 1. **`boat` over water is ΔE 14.0** (see `MODE_STYLE`). No width fixes a teal line on teal sea.
+ * 2. A **solid casing carries the Leg's existence where the dash cannot.** At the app's own opening
+ *    camera the nine Legs span **5.1 px to 2,406 px** — 470× in one frame — and dash length is a
+ *    multiple of line width, so Koh Kradan → Koh Mook gets **0.6 of one dash cycle** and widening the
+ *    line makes that *worse*, not better. A solid casing draws whatever the Leg's length is.
+ * 3. Ink on ground is a two-colour problem, and the casing turns it into a one-colour problem: the
+ *    band separates if **either** of its inks does, so the weakest pairing on the whole map goes from
+ *    **ΔE 14.0 to ΔE 43.4** with no ink changed.
+ *
+ * **One number rather than a zoom ramp, and that is a measurement.** The ticket assumed width "is one
+ * number per zoom rather than one number" — what reads at street zoom and what reads across the
+ * Andaman being different widths. It is not: 7/4 was rendered at **z2.4 on the globe, z5.6 (the app's
+ * own load frame), z9.3 over the island chain and z14.6 and z18.2 on Koh Kradan**, and reads at all
+ * five. A line competes with other *screen* marks, and the Diorama's mark density barely moves with
+ * zoom — #11 stripped every road, railway and aeroway, so above the coastline a Path is very nearly
+ * the only line on the map, and symbol collision thins the labels to whatever fits. An interpolation
+ * would have been three more numbers buying nothing.
+ *
+ * A wider band is #23's to argue for: this is the width at which a Leg stops being missable, not the
+ * width at which a Path becomes the chunky object the Destination is after.
+ */
+export const PATH_WIDTH_PX = 4
+
+/**
+ * Wider than the core by 1.5 px each side. Enough to read as an edge at every zoom above, and not so
+ * much that the casing becomes the band — at 7/4 the core is 57 % of the width, which is what keeps
+ * the Mode's own ink the thing you see.
+ */
+export const PATH_CASING_PX = 7
+
+/**
+ * One dark for every Mode, deliberately — **the casing must not carry hue**.
+ *
+ * The obvious alternative is a per-Mode casing, a darker shade of each ink, and it was built and
+ * measured before this one. It loses on both counts. Darkening compresses the palette toward the
+ * shade, so `boat` and `ferry` — already the closest pair at **ΔE 12.5** and the very pair #8 said
+ * colour has to separate — collapse to **6.1**; and a mid-dark tinted casing separates from the
+ * ground *less* well than a flat dark one (**ΔE 34.4 against 43.4** at the weakest pairing). So the
+ * neutral is both more visible and free: it leaves every Mode's ink exactly where #8 put it, which
+ * is the channel #23 is owed intact.
+ *
+ * It is `PIN_RESOLVED_INK` — the Pin's own dark — rather than a new colour, so a Stop's marker and
+ * the Legs running into it are edged with the same ink. A test pins them equal; nothing imports
+ * across the two modules, because a Path and a Pin agreeing on a colour is not a dependency.
+ */
+export const PATH_CASING_INK = '#2f4f4f'
 
 /**
  * One source and one layer for every Path, whatever its Mode.
@@ -275,6 +332,7 @@ export const PATH_WIDTH_PX = 3
  */
 export const PATH_SOURCE_ID = 'paths'
 export const PATH_LAYER_ID = 'paths'
+export const PATH_CASING_LAYER_ID = 'paths-casing'
 
 /**
  * Where the Paths go in the layer order: above every land and water fill, below the place labels.
@@ -298,6 +356,38 @@ const byMode = <T>(
     ]),
     of('unknown'),
   ] as unknown as DataDrivenPropertyValueSpecification<T>
+
+/**
+ * The dark edge under every Path. Same source, same geometry, one layer earlier.
+ *
+ * **Solid, and that is the decision** — not a dashed outline tracing each dash. An outline was built
+ * and rejected on the picture: the real trip's dashes are ~6 px long at this width, so a 1.5 px
+ * border on every side of each one is most of the mark, and the band comes out a row of dark dots
+ * with the Mode's ink squeezed out of the middle. Solid, the casing fills the dash gaps instead, and
+ * the Leg reads as one continuous object with a rhythm in it rather than as a dotted line.
+ *
+ * Filling the gaps is what pays for #22's hardest case. Koh Kradan → Koh Mook is **5.1 px long** at
+ * the opening camera and carries **0.6 of a dash cycle** — less than one dash, so whether it drew at
+ * all was a matter of phase. Cased, it is 5.1 px of solid ink whatever the dash does.
+ *
+ * No `line-opacity` and no exemption for a Mode-less Leg, which is worth saying because the obvious
+ * reading of #8 is that an undecided Leg should stay faint. It should not: a Leg is **derived from
+ * Stop order**, so its *existence* is certain even when its Mode is not, and the casing is what says
+ * a movement happens here. The muted dotted core above still says nobody has decided how.
+ *
+ * `butt` caps, matching the core: round caps would overhang each end by half the width, which at the
+ * trip view is ~11 km of Path the Itinerary does not contain.
+ */
+export const pathCasingLayer = (): LineLayerSpecification => ({
+  id: PATH_CASING_LAYER_ID,
+  type: 'line',
+  source: PATH_SOURCE_ID,
+  layout: { 'line-cap': 'butt', 'line-join': 'round' },
+  paint: {
+    'line-width': PATH_CASING_PX,
+    'line-color': PATH_CASING_INK,
+  },
+})
 
 export const pathLayer = (): LineLayerSpecification => ({
   id: PATH_LAYER_ID,
